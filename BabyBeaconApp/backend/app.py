@@ -216,15 +216,39 @@ def get_profile():
         user_data = user_doc.to_dict()
 
         # Fetch babies from subcollection
-        babies_ref = user_ref.collection("babies").stream()
-        babies = [baby.id for baby in babies_ref]  # Get baby names as a list
+        babies_ref = user_ref.collection("baby").stream()  # 🔹 Correct Firestore collection
+        babies = [{"name": baby.id} for baby in babies_ref]  # 🔹 Get baby names properly
 
-        user_data["babies"] = babies  # Attach to user response
+        user_data["babies"] = babies  # Attach babies to user data
 
         return jsonify({"status": "success", "data": user_data}), 200
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/get_device_id", methods=["GET"])
+def get_device_id():
+    username = request.args.get("username")  # ✅ Extract username
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
+
+    try:
+        user_ref = db.collection("users").document(username)
+        user_doc = user_ref.get()
+
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            device_id = user_data.get("device_id")
+            if device_id:
+                return jsonify({"device_id": device_id}), 200
+            else:
+                return jsonify({"error": "Device ID not found"}), 404
+        else:
+            return jsonify({"error": "User not found"}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 ### 3️⃣ GET SCAN STATUS API ###
 @app.route("/get_scan_status", methods=["GET"])
@@ -296,4 +320,3 @@ def send_response():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
-

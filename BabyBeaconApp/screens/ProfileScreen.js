@@ -106,6 +106,37 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "New password and confirmation do not match.");
+      return;
+    }
+
+    try {
+      const username = await AsyncStorage.getItem("username");
+      const response = await axios.post(`${API_BASE_URL}/change_password`, {
+        username,
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
+
+      if (response.data.status === "success") {
+        Alert.alert("Success", "Password changed successfully.");
+        setPasswordModalVisible(false); // Close modal on success
+      } else {
+        Alert.alert("Error", response.data.message);
+      }
+    } catch (error) {
+      console.error("Change Password Error:", error);
+      Alert.alert("Error", "Could not change password.");
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Profile</Text>
@@ -133,11 +164,32 @@ const ProfileScreen = () => {
           <Text style={styles.buttonText}>Update Babies</Text>
         </TouchableOpacity>
 
-        {/* Change Password Button */}
-        <TouchableOpacity style={styles.blueButton} onPress={() => setPasswordModalVisible(true)}>
+        {/* Change Password Button ✅ Fixes applied here */}
+        <TouchableOpacity id="change-password-btn" style={styles.blueButton} onPress={() => setPasswordModalVisible(true)}>
           <Text style={styles.buttonText}>Change Password</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Change Password Modal ✅ */}
+      <Modal id="change-password-modal" visible={passwordModalVisible} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+
+            <TextInput style={styles.input} placeholder="Old Password" secureTextEntry value={oldPassword} onChangeText={setOldPassword} />
+            <TextInput style={styles.input} placeholder="New Password" secureTextEntry value={newPassword} onChangeText={setNewPassword} />
+            <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
+
+            <TouchableOpacity style={styles.greenButton} onPress={handleChangePassword}>
+              <Text style={styles.buttonText}>Submit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.blueButton} onPress={() => setPasswordModalVisible(false)}>
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Update Babies Modal (with grey background) */}
       <Modal visible={babyModalVisible} animationType="fade" transparent>
@@ -152,8 +204,8 @@ const ProfileScreen = () => {
 
             {babies.map((baby, index) => (
               <View key={index} style={styles.babyItem}>
-                <Text style={styles.babyText}>{baby}</Text>
-                <TouchableOpacity onPress={() => handleRemoveBaby(baby)}>
+                <Text style={styles.babyText}>{baby.name || baby}</Text>  {/* ✅ Extract name correctly */}
+                <TouchableOpacity onPress={() => handleRemoveBaby(baby.name || baby)}>
                   <FontAwesome name="trash" size={20} color="red" />
                 </TouchableOpacity>
               </View>
