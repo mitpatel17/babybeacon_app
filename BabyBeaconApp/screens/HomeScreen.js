@@ -78,9 +78,9 @@ const HomeScreen = () => {
         setIsScanning(!isScanning);
   
         if (!isScanning) {
-          startRidePolling(storedUsername); // Pass the username
-        } else {
-          stopRidePolling();
+          // ✅ Only clear scans when starting a new session
+          setScans([]);  
+          startRidePolling(storedUsername);
         }
       } else {
         console.error("Error toggling scan:", response.data.message);
@@ -178,8 +178,7 @@ const HomeScreen = () => {
   };
   
   const stopRidePolling = () => {
-    clearInterval(pollingInterval); // Stop polling
-    setScans([]);
+    clearInterval(pollingInterval); // ✅ Stop polling, but don't clear scans
   };
 
   useEffect(() => {
@@ -287,18 +286,27 @@ const HomeScreen = () => {
         )}
 
       </View>
-      <Text style={styles.ghostText}>Waiting for scans...</Text>
+      <View style={styles.ghostBox}>
+        {/* Keep "Waiting for scans..." even when scans arrive */}
+        <Text style={styles.ghostText}>
+          {!isScanning
+            ? "Waiting to start!"
+            : scans.length === 0
+            ? "Waiting for scans..."
+            : "Latest Scans:"}
+        </Text>
 
-      {/* 🔹 Scrollable list of scans without moving ghost box */}
-      <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
-        {scans.map((scan) => (
-          <View key={scan.id} style={styles.scanNotification}>
-            <Text style={styles.scanText}>
-              {scan.id}: {scan.emotion} ({scan.accuracy}%)
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
+        {/* Scrollable list of scans, latest on top */}
+        <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
+          {scans.map((scan) => (
+            <View key={scan.id} style={styles.scanNotification}>
+              <Text style={styles.scanText}>
+                {scan.id}: {scan.emotion} ({scan.accuracy}%)
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
     </View>
   );
 };
@@ -354,24 +362,25 @@ const styles = StyleSheet.create({
     color: "#000710",
   },
   ghostBox: {
-    flex: 2,
-    justifyContent: "flex-start", // Keeps scans at the top
+    flex: 2, 
+    justifyContent: "flex-start",  // Prevents stretching
     alignItems: "center",
-    marginTop: 20,
-    paddingVertical: 10, 
-    paddingHorizontal: 15, 
-    borderWidth: 2, 
-    borderColor: "#bbb",
+    marginTop: 10,  // Add spacing
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 10,
     backgroundColor: "#f9f9f9",
     width: "90%",
-    minHeight: 250, 
-    maxHeight: 400, 
-    overflow: "hidden",
+    minHeight: 80,  // Ensures it doesn't disappear when empty
+    maxHeight: 300, // Prevents overflow
+    overflow: "hidden", // Ensures no content flows out
   },
   scanContainer: {
-    flex: 1,
+    flexGrow: 1,  
+    maxHeight: 250, // Ensures scans don't push into other elements
     width: "100%",
+    paddingBottom: 10,
   },
   scanNotification: {
     width: "100%", // ✅ Take full width of ghost box
