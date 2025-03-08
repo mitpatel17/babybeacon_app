@@ -8,8 +8,26 @@ const HomeScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
   const [scanningBaby, setScanningBaby] = useState(null); // Default: null
+  const [responses, setResponses] = useState([]);
+  const [activeResponse, setActiveResponse] = useState("None");
 
   useEffect(() => {
+    const fetchResponses = async (username, scanningBaby) => {
+      try {
+        const response = await axios.get(`${API_URL}/get_baby_responses`, {
+          params: { username },
+        });
+    
+        if (response.data.status === "success") {
+          setResponses(response.data.responses || []);
+        } else {
+          console.error("Failed to fetch responses:", response.data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching responses:", error);
+      }
+    };
+    
     const fetchProfile = async () => {
       try {
         const storedUsername = await AsyncStorage.getItem("username");
@@ -17,22 +35,23 @@ const HomeScreen = () => {
           console.error("No username found in storage.");
           return;
         }
-
+    
         const response = await axios.get(`${API_URL}/get_profile`, {
           params: { username: storedUsername },
         });
-
+    
         if (response.data.status === "success") {
           const userData = response.data.data;
-
-          // ✅ Store scanning_baby locally
+    
           if (userData.scanning_baby) {
             setScanningBaby(userData.scanning_baby);
             await AsyncStorage.setItem("scanning_baby", userData.scanning_baby);
+            fetchResponses(storedUsername, userData.scanning_baby); // Fetch responses
           } else {
             setScanningBaby(null);
+            setResponses([]); // Reset responses
           }
-
+    
           if (userData.device_id) {
             setDeviceId(userData.device_id);
             await AsyncStorage.setItem("device_id", userData.device_id);
@@ -43,7 +62,7 @@ const HomeScreen = () => {
       } catch (error) {
         console.error("Error fetching profile:", error);
       }
-    };
+    };    
 
     fetchProfile();
   }, []);
@@ -72,11 +91,8 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 🔹 Dynamic Title Based on Scanning Baby */}
-      <Text style={styles.header}>
-        {scanningBaby ? `Beacon on ${scanningBaby}` : "BabyBeacon"}
-      </Text>
-
+      <Text style={styles.header}>{scanningBaby ? `Beacon on ${scanningBaby}` : "BabyBeacon"}</Text>
+  
       <TouchableOpacity
         style={[styles.button, isScanning ? styles.stopButton : styles.startButton]}
         onPress={toggleScan}
@@ -84,17 +100,42 @@ const HomeScreen = () => {
         <Text style={styles.buttonText}>{isScanning ? "Stop" : "Start"}</Text>
       </TouchableOpacity>
       
-      {/* 🔹 Dynamic Responses Box Title */}
       <View style={styles.ghostBoxResponses}>
         <Text style={styles.responseTitle}>
-          {scanningBaby ? `Responses for ${scanningBaby}` : "Responses for Baby"}
+          {scanningBaby ? `Responses for ${scanningBaby} Playing:` : "Responses"}
         </Text>
+
+        {/* Spacer for first button */}
+        <View style={{ height: 10 }} />
+
+        {/* None Button (Default Green) */}
+        <TouchableOpacity
+          style={[styles.responseButton, activeResponse === "None" ? styles.activeButton : styles.inactiveButton]}
+          onPress={() => setActiveResponse("None")}
+        >
+          <Text style={styles.responseButtonText}>None</Text>
+        </TouchableOpacity>
+
+        {/* Response Buttons */}
+        {responses.length > 0 ? (
+          responses.map((response, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.responseButton, activeResponse === response ? styles.activeButton : styles.inactiveButton]}
+              onPress={() => setActiveResponse(response)}
+            >
+              <Text style={styles.responseButtonText}>{response}</Text>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text style={styles.noResponsesText}>No responses available.</Text>
+        )}
       </View>
-      
+
       {/* Ghost Display Box - Ride Status */}
       <View style={styles.ghostBox}>
         <Text style={styles.ghostText}>
-          {isScanning ? "Waiting for scans" : "Ride is not started"}
+          {isScanning ? "Waiting for scans" : "Start the Ride"}
         </Text>
       </View>
     </View>
@@ -112,7 +153,8 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,   // ⬅ Reduce gap between Home & Title
+    marginTop: -30,     // ⬅ Move up closer to "Home"
   },
   button: {
     padding: 15,
@@ -131,19 +173,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   ghostBox: {
-    flex: 1,
+    flex: 2,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
-    padding: 10,
-    borderWidth: 1,
+    padding: 2,
+    borderWidth: 0.5,
     borderColor: "#ccc",
-    borderRadius: 10,
+    borderRadius: 5,
     backgroundColor: "#f9f9f9",
     width: "90%",
   },
   ghostBoxResponses: {
-    flex: 1,
+    flex: 1.2,
     justifyContent: "flex-start",
     alignItems: "center",
     padding: 10,
@@ -153,6 +195,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     width: "90%",
     marginTop: 20, // Moves it to top above scan box
+  },
+  responseButton: {
+    paddingVertical: 8,  // ⬅ Thinner buttons (wrap font)
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginVertical: 4,   // ⬅ Reduce gap between buttons
+    width: "90%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeButton: {
+    backgroundColor: "#28A745", // Green when active
+  },
+  inactiveButton: {
+    backgroundColor: "#e2ffcc", // Light blue when inactive
+  },
+  responseButtonText: {
+    fontSize: 18,
+    fontWeight: "normal",
+    color: "#000710",
   },
   ghostText: {
     fontSize: 16,

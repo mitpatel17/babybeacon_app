@@ -176,7 +176,44 @@ def update_profile():
         logging.error(f"Update Profile Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/get_baby_responses', methods=['GET'])
+def get_baby_responses():
+    try:
+        username = request.args.get('username')
+        if not username:
+            return jsonify({"status": "error", "message": "Username is required"}), 400
+        
+        # Fetch user document
+        user_ref = db.collection("users").document(username)
+        user_doc = user_ref.get()
 
+        if not user_doc.exists:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+
+        user_data = user_doc.to_dict()
+        scanning_baby = user_data.get("scanning_baby")
+
+        if not scanning_baby:
+            return jsonify({"status": "error", "message": "No scanning baby found"}), 404
+
+        # Fetch baby responses
+        baby_ref = user_ref.collection("baby").document(scanning_baby)
+        baby_doc = baby_ref.get()
+
+        if not baby_doc.exists:
+            return jsonify({"status": "error", "message": "Baby not found"}), 404
+
+        baby_data = baby_doc.to_dict()
+        responses = baby_data.get("responses", {})
+
+        # Extract response keys (titles)
+        response_keys = list(responses.keys())
+
+        return jsonify({"status": "success", "responses": response_keys})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
 @app.route("/add_baby", methods=["POST"])
 def add_baby():
     try:
