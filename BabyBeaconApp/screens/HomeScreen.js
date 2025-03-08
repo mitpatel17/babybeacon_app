@@ -1,5 +1,5 @@
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
@@ -11,6 +11,8 @@ const HomeScreen = () => {
   const [responses, setResponses] = useState([]);
   const [activeResponse, setActiveResponse] = useState("None");
   const [activeResponseUrl, setActiveResponseUrl] = useState(null);
+  const [currentRideId, setCurrentRideId] = useState(null);
+  const [scans, setScans] = useState([]);
 
   const handleResponseClick = async (responseKey) => {
     setActiveResponse(responseKey);
@@ -58,7 +60,128 @@ const HomeScreen = () => {
       console.error("Error updating device response:", error);
     }
   };
+
+  const toggleScan = async () => {
+    const storedUsername = await AsyncStorage.getItem("username"); // Fetch username
+    if (!deviceId || !storedUsername) {
+      console.error("Device ID or username is missing.");
+      return;
+    }
   
+    const action = isScanning ? "stop_scan" : "start_scan";
+    try {
+      const response = await axios.post(`${API_URL}/${action}`, {
+        device_id: deviceId,
+      });
+  
+      if (response.data.status === "success") {
+        setIsScanning(!isScanning);
+  
+        if (!isScanning) {
+          startRidePolling(storedUsername); // Pass the username
+        } else {
+          stopRidePolling();
+        }
+      } else {
+        console.error("Error toggling scan:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  };  
+
+  const startRidePolling = async (username) => {
+    try {
+      // Fetch last_ride_Id from user profile
+      const profileResponse = await axios.get(`${API_URL}/get_profile`, {
+        params: { username },
+      });
+
+      if (profileResponse.data.status === "success") {
+        let lastRideId = parseInt(profileResponse.data.data.last_ride_Id || "0") + 1;
+        setCurrentRideId(`ride_${lastRideId}`);
+
+        // Start polling every 3 seconds
+        pollForScans(lastRideId);
+      } else {
+        console.error("Failed to fetch last ride ID:", profileResponse.data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching last ride ID:", error);
+    }
+  };
+
+  let pollingInterval; // Store interval globally
+
+  const pollForScans = async (rideId) => {
+    console.log("🚀 Starting scan polling for Ride ID:", rideId);
+  
+    pollingInterval = setInterval(async () => {
+      try {
+        // 🔹 Check device status first
+        const statusResponse = await axios.get(`${API_URL}/get_device_status`, {
+          params: { device_id: deviceId },
+        });
+  
+        if (statusResponse.data.status === "success") {
+          console.log("📡 Device status:", statusResponse.data.device_status);
+  
+          if (statusResponse.data.device_status === "idle") {
+            clearInterval(pollingInterval);
+            setIsScanning(false);
+            console.log("🛑 Stopping polling - Device is idle.");
+            return;
+          }
+        }
+  
+        // 🔹 Fetch ride scans
+        const rideResponse = await axios.get(`${API_URL}/get_ride_data`, {
+          params: { device_id: deviceId, ride_id: `ride_${rideId}` },
+        });
+  
+        if (rideResponse.data.status === "success") {
+          console.log("✅ Ride scan data:", rideResponse.data);
+  
+          // Convert scan data into an array of objects
+          const scanEntries = Object.entries(rideResponse.data.scans || {}).map(([key, value]) => ({
+            id: key,
+            ...value,
+          }));
+  
+          // 🔹 Filter only scans with "scan" in the ID
+          const filteredScans = scanEntries.filter((scan) => scan.id.includes("scan"));
+  
+          // Sort scans so the latest appears on top
+          filteredScans.sort((a, b) => parseInt(b.id.replace("scan", "")) - parseInt(a.id.replace("scan", "")));
+  
+          // 🔹 Only add new scans that aren’t already in state
+          setScans((prevScans) => {
+            const newScans = filteredScans.filter((newScan) =>
+              !prevScans.some((existingScan) => existingScan.id === newScan.id)
+            );
+  
+            // If no new scans, return the same state (prevents duplicate stacking)
+            if (newScans.length === 0) return prevScans;
+  
+            // 🔹 Ensure latest scans appear first
+            return [...newScans, ...prevScans];
+          });
+  
+          console.log("📊 Updated scans in state:", filteredScans);
+        } else {
+          console.error("⚠️ Failed to fetch ride data:", rideResponse.data.message);
+        }
+      } catch (error) {
+        console.error("❌ Error polling for scans:", error);
+      }
+    }, 3000);
+  };
+  
+  const stopRidePolling = () => {
+    clearInterval(pollingInterval); // Stop polling
+    setScans([]);
+  };
+
   useEffect(() => {
     const fetchResponses = async (username, scanningBaby) => {
       try {
@@ -91,13 +214,15 @@ const HomeScreen = () => {
         if (response.data.status === "success") {
           const userData = response.data.data;
     
+          setCurrentRideId(userData.last_ride_Id);
+    
           if (userData.scanning_baby) {
             setScanningBaby(userData.scanning_baby);
             await AsyncStorage.setItem("scanning_baby", userData.scanning_baby);
-            fetchResponses(storedUsername, userData.scanning_baby); // Fetch responses
+            fetchResponses(storedUsername, userData.scanning_baby); 
           } else {
             setScanningBaby(null);
-            setResponses([]); // Reset responses
+            setResponses([]);
           }
     
           if (userData.device_id) {
@@ -114,28 +239,6 @@ const HomeScreen = () => {
 
     fetchProfile();
   }, []);
-
-  const toggleScan = async () => {
-    if (!deviceId) {
-      console.error("Device ID is missing.");
-      return;
-    }
-
-    const action = isScanning ? "stop_scan" : "start_scan";
-    try {
-      const response = await axios.post(`${API_URL}/${action}`, {
-        device_id: deviceId,
-      });
-
-      if (response.data.status === "success") {
-        setIsScanning(!isScanning);
-      } else {
-        console.error("Error toggling scan:", response.data.message);
-      }
-    } catch (error) {
-      console.error("Network error:", error);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -184,12 +287,18 @@ const HomeScreen = () => {
         )}
 
       </View>
-      {/* Ghost Display Box - Ride Status */}
-      <View style={styles.ghostBox}>
-        <Text style={styles.ghostText}>
-          {isScanning ? "Waiting for scans" : "Start the Ride"}
-        </Text>
-      </View>
+      <Text style={styles.ghostText}>Waiting for scans...</Text>
+
+      {/* 🔹 Scrollable list of scans without moving ghost box */}
+      <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
+        {scans.map((scan) => (
+          <View key={scan.id} style={styles.scanNotification}>
+            <Text style={styles.scanText}>
+              {scan.id}: {scan.emotion} ({scan.accuracy}%)
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 };
@@ -224,30 +333,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
   },
-  ghostBox: {
-    flex: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-    padding: 2,
-    borderWidth: 0.5,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    backgroundColor: "#f9f9f9",
-    width: "90%",
-  },
-  ghostBoxResponses: {
-    flex: 1.2,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    backgroundColor: "#f9f9f9",
-    width: "90%",
-    marginTop: 20, // Moves it to top above scan box
-  },
   responseButton: {
     paddingVertical: 8,  // ⬅ Thinner buttons (wrap font)
     paddingHorizontal: 20,
@@ -268,9 +353,61 @@ const styles = StyleSheet.create({
     fontWeight: "normal",
     color: "#000710",
   },
+  ghostBox: {
+    flex: 2,
+    justifyContent: "flex-start", // Keeps scans at the top
+    alignItems: "center",
+    marginTop: 20,
+    paddingVertical: 10, 
+    paddingHorizontal: 15, 
+    borderWidth: 2, 
+    borderColor: "#bbb",
+    borderRadius: 10,
+    backgroundColor: "#f9f9f9",
+    width: "90%",
+    minHeight: 250, 
+    maxHeight: 400, 
+    overflow: "hidden",
+  },
+  scanContainer: {
+    flex: 1,
+    width: "100%",
+  },
+  scanNotification: {
+    width: "100%", // ✅ Take full width of ghost box
+    backgroundColor: "#e2f0ff",  
+    padding: 12,
+    marginVertical: 4, 
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#007BFF",
+    alignItems: "flex-start", // ✅ Align text to the left
+    paddingLeft: 15, // ✅ Give a little left padding
+  },
+  scanText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#003366",
+  },
+  ghostBoxResponses: {
+    flex: 1.2,
+    justifyContent: "flex-start",
+    alignItems: "center",
+    padding: 10,
+    borderWidth: 2, // 🔹 Ensure a visible border
+    borderColor: "#bbb", // Light gray border
+    borderRadius: 10,
+    backgroundColor: "#f9f9f9",
+    width: "90%",
+    marginBottom: 15,
+    marginTop: 10 // 🔹 Adds spacing between the two boxes
+  },
   ghostText: {
-    fontSize: 16,
-    color: "#888", // Light grey for ghost effect
+    fontSize: 20, // ⬆ Bigger Title
+    fontWeight: "bold",
+    color: "#444",
+    textAlign: "center",
+    marginBottom: 10,
   },
   responseTitle: {
     fontSize: 18,

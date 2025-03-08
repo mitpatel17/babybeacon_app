@@ -322,6 +322,23 @@ def remove_baby():
         logging.error(f"Remove Baby Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/get_device_status", methods=["GET"])
+def get_device_status():
+    device_id = request.args.get("device_id")
+    doc = db.collection("devices").document(device_id).get()
+    if doc.exists:
+        return jsonify({"status": "success", "device_status": doc.to_dict().get("status", "idle")})
+    return jsonify({"status": "error", "message": "Device not found"}), 404
+
+@app.route("/get_ride_data", methods=["GET"])
+def get_ride_data():
+    device_id = request.args.get("device_id")
+    ride_id = request.args.get("ride_id")
+    doc = db.collection("devices").document(device_id).collection("rides").document(ride_id).get()
+    if doc.exists:
+        return jsonify({"status": "success", "scans": doc.to_dict()})
+    return jsonify({"status": "error", "message": "Ride not found"}), 404
+
 @app.route("/get_profile", methods=["GET"])
 def get_profile():
     try:
