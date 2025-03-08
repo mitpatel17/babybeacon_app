@@ -17,6 +17,37 @@ cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+### 🔐 CHANGE PASSWORD API ###
+@app.route("/change_password", methods=["POST"])
+def change_password():
+    data = request.json
+    username = data.get("username")
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
+
+    if not username or not old_password or not new_password:
+        return jsonify({"status": "fail", "message": "Missing required fields."}), 400
+
+    try:
+        user_ref = db.collection("users").document(username)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            return jsonify({"status": "fail", "message": "User not found."}), 404
+
+        user_data = user_doc.to_dict()
+
+        # ✅ Check if old password matches
+        if user_data.get("password") != old_password:
+            return jsonify({"status": "fail", "message": "Incorrect old password."}), 401
+
+        # ✅ Update the password
+        user_ref.update({"password": new_password})
+
+        return jsonify({"status": "success", "message": "Password changed successfully."}), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 ### 1️⃣ LOGIN API ###
 @app.route("/login", methods=["POST"])

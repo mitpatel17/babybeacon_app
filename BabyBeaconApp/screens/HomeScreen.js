@@ -7,38 +7,45 @@ import API_URL from "../config";
 const HomeScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
+  const [scanningBaby, setScanningBaby] = useState(null); // Default: null
 
   useEffect(() => {
-    const fetchDeviceId = async () => {
+    const fetchProfile = async () => {
       try {
         const storedUsername = await AsyncStorage.getItem("username");
         if (!storedUsername) {
-          console.error("No username found in storage");
+          console.error("No username found in storage.");
           return;
         }
-    
-        let storedDeviceId = await AsyncStorage.getItem("device_id");
-        if (!storedDeviceId) {
-          const response = await axios.get(`${API_URL}/get_device_id`, {
-            params: { username: storedUsername },
-          });
-    
-          if (response.data.device_id) {
-            storedDeviceId = response.data.device_id;
-            await AsyncStorage.setItem("device_id", storedDeviceId);
+
+        const response = await axios.get(`${API_URL}/get_profile`, {
+          params: { username: storedUsername },
+        });
+
+        if (response.data.status === "success") {
+          const userData = response.data.data;
+
+          // ✅ Store scanning_baby locally
+          if (userData.scanning_baby) {
+            setScanningBaby(userData.scanning_baby);
+            await AsyncStorage.setItem("scanning_baby", userData.scanning_baby);
           } else {
-            console.error("Device ID not found");
-            return;
+            setScanningBaby(null);
           }
+
+          if (userData.device_id) {
+            setDeviceId(userData.device_id);
+            await AsyncStorage.setItem("device_id", userData.device_id);
+          }
+        } else {
+          console.error("Profile Fetch Failed:", response.data.message);
         }
-    
-        setDeviceId(storedDeviceId);
       } catch (error) {
-        console.error("Error fetching device ID:", error);
+        console.error("Error fetching profile:", error);
       }
     };
-    
-    fetchDeviceId();
+
+    fetchProfile();
   }, []);
 
   const toggleScan = async () => {
@@ -65,7 +72,11 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>BabyBeacon</Text>
+      {/* 🔹 Dynamic Title Based on Scanning Baby */}
+      <Text style={styles.header}>
+        {scanningBaby ? `Beacon on ${scanningBaby}` : "BabyBeacon"}
+      </Text>
+
       <TouchableOpacity
         style={[styles.button, isScanning ? styles.stopButton : styles.startButton]}
         onPress={toggleScan}
@@ -73,14 +84,18 @@ const HomeScreen = () => {
         <Text style={styles.buttonText}>{isScanning ? "Stop" : "Start"}</Text>
       </TouchableOpacity>
       
-      {/* Ghost Display Box - Responses */}
+      {/* 🔹 Dynamic Responses Box Title */}
       <View style={styles.ghostBoxResponses}>
-        <Text style={styles.responseTitle}>Responses (to be played later)</Text>
+        <Text style={styles.responseTitle}>
+          {scanningBaby ? `Responses for ${scanningBaby}` : "Responses for Baby"}
+        </Text>
       </View>
       
       {/* Ghost Display Box - Ride Status */}
       <View style={styles.ghostBox}>
-        <Text style={styles.ghostText}>{isScanning ? "Waiting for scans" : "Ride is not started"}</Text>
+        <Text style={styles.ghostText}>
+          {isScanning ? "Waiting for scans" : "Ride is not started"}
+        </Text>
       </View>
     </View>
   );
