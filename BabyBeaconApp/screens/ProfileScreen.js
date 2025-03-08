@@ -153,7 +153,7 @@ const ProfileScreen = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+      <Text style={styles.title}>View/Edit Profile</Text>
 
       <View style={styles.profileContainer}>
         <Text style={styles.label}>Device ID:</Text>
