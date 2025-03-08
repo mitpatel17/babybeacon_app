@@ -10,12 +10,60 @@ const HomeScreen = () => {
   const [scanningBaby, setScanningBaby] = useState(null); // Default: null
   const [responses, setResponses] = useState([]);
   const [activeResponse, setActiveResponse] = useState("None");
+  const [activeResponseUrl, setActiveResponseUrl] = useState(null);
 
+  const handleResponseClick = async (responseKey) => {
+    setActiveResponse(responseKey);
+  
+    const currentDeviceId = deviceId; // Use deviceId directly
+    const currentScanningBaby = scanningBaby; // Use scanningBaby directly
+    const storedUsername = await AsyncStorage.getItem("username");
+    if (responseKey === "None") {
+      setActiveResponseUrl(""); // Ensure empty string instead of null
+      await updateDeviceResponse(currentDeviceId, ""); // Update Firestore
+      return;
+    }
+  
+    try {
+      // 🔹 Fetch the response URL for the selected responseKey
+      const response = await axios.get(`${API_URL}/get_response_url`, {
+        params: {
+          username: storedUsername,
+          scanning_baby: currentScanningBaby,
+          response_key: responseKey,
+        },
+      });
+  
+      if (response.data.status === "success") {
+        const url = response.data.url;
+        setActiveResponseUrl(url);
+        await updateDeviceResponse(currentDeviceId, url); // 🔹 Update Firestore with new URL
+      } else {
+        console.error("Failed to fetch response URL:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching response URL:", error);
+    }
+  };
+  
+  // 🔹 Function to Update Firestore Device Response
+  const updateDeviceResponse = async (deviceId, responseUrl) => {
+    try {
+      await axios.post(`${API_URL}/update_device_response`, {
+        device_id: deviceId,
+        response: responseUrl,
+      });
+      console.log(`✅ Updated Firestore: ${deviceId} -> ${responseUrl || "None"}`);
+    } catch (error) {
+      console.error("Error updating device response:", error);
+    }
+  };
+  
   useEffect(() => {
     const fetchResponses = async (username, scanningBaby) => {
       try {
         const response = await axios.get(`${API_URL}/get_baby_responses`, {
-          params: { username },
+          params: { username, scanning_baby: scanningBaby },
         });
     
         if (response.data.status === "success") {
@@ -108,21 +156,25 @@ const HomeScreen = () => {
         {/* Spacer for first button */}
         <View style={{ height: 10 }} />
 
-        {/* None Button (Default Green) */}
         <TouchableOpacity
-          style={[styles.responseButton, activeResponse === "None" ? styles.activeButton : styles.inactiveButton]}
-          onPress={() => setActiveResponse("None")}
+          style={[
+            styles.responseButton,
+            activeResponse === "None" ? styles.activeButton : styles.inactiveButton,
+          ]}
+          onPress={() => handleResponseClick("None")}
         >
           <Text style={styles.responseButtonText}>None</Text>
         </TouchableOpacity>
 
-        {/* Response Buttons */}
         {responses.length > 0 ? (
           responses.map((response, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.responseButton, activeResponse === response ? styles.activeButton : styles.inactiveButton]}
-              onPress={() => setActiveResponse(response)}
+              style={[
+                styles.responseButton,
+                activeResponse === response ? styles.activeButton : styles.inactiveButton,
+              ]}
+              onPress={() => handleResponseClick(response)}
             >
               <Text style={styles.responseButtonText}>{response}</Text>
             </TouchableOpacity>
@@ -130,8 +182,8 @@ const HomeScreen = () => {
         ) : (
           <Text style={styles.noResponsesText}>No responses available.</Text>
         )}
-      </View>
 
+      </View>
       {/* Ghost Display Box - Ride Status */}
       <View style={styles.ghostBox}>
         <Text style={styles.ghostText}>

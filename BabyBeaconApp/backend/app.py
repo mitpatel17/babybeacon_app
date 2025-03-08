@@ -213,7 +213,62 @@ def get_baby_responses():
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+
+@app.route('/get_response_url', methods=['GET'])
+def get_response_url():
+    username = request.args.get('username')
+    scanning_baby = request.args.get('scanning_baby')
+    response_key = request.args.get('response_key')
+
+    if not username or not scanning_baby or not response_key:
+        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+    try:
+        # 🔹 Fetch URL from Firebase (Assuming Firestore usage)
+        doc_ref = db.collection("users").document(username).collection("baby").document(scanning_baby)
+        doc = doc_ref.get()
+
+        if doc.exists:
+            responses = doc.to_dict().get("responses", {})
+            response_url = responses.get(response_key)
+
+            if response_url:
+                return jsonify({"status": "success", "url": response_url})
+            else:
+                return jsonify({"status": "error", "message": "Response key not found"}), 404
+        else:
+            return jsonify({"status": "error", "message": "Document not found"}), 404
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/update_device_response", methods=["POST"])
+def update_device_response():
+    """
+    Updates the response URL in Firestore under devices/{device_id}/response.
+    If 'None' is selected, it clears the response (stores "") instead of null.
+    """
+    try:
+        data = request.json
+        device_id = data.get("device_id")
+        response_url = data.get("response", "").strip()  # Default to "" if missing
+
+        if not device_id:
+            return jsonify({"status": "error", "message": "Missing device_id"}), 400
+
+        # 🔹 Ensure response is not None, always set to "" if "None" is selected
+        response_to_store = response_url if response_url.lower() != "none" else ""
+
+        # 🔹 Update Firestore: Set response URL in devices/{device_id}
+        device_ref = db.collection("devices").document(device_id)
+        device_ref.update({"response": response_to_store})
+
+        return jsonify({"status": "success", "message": "Response updated successfully."})
+
+    except Exception as e:
+        print("Error updating device response:", str(e))
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/add_baby", methods=["POST"])
 def add_baby():
     try:
