@@ -194,9 +194,8 @@ def add_baby():
             return jsonify({"status": "fail", "message": f"User '{username}' not found."}), 404
 
         # Create baby entry under "babies" subcollection instead of an array
-        baby_ref = user_ref.collection("babies").document(baby_name)
+        baby_ref = user_ref.collection("baby").document(baby_name)
         baby_ref.set({
-            "age": None,  # Placeholder for age if needed
             "responses": {},  # Empty response map
             "rides": []       # Empty rides array
         })
@@ -219,7 +218,7 @@ def remove_baby():
             return jsonify({"status": "fail", "message": "Missing required fields"}), 400
 
         user_ref = db.collection("users").document(username)
-        baby_ref = user_ref.collection("babies").document(baby_name)
+        baby_ref = user_ref.collection("baby").document(baby_name)
 
         if not baby_ref.get().exists:
             return jsonify({"status": "fail", "message": f"Baby '{baby_name}' not found."}), 404
@@ -246,11 +245,11 @@ def get_profile():
 
         user_data = user_doc.to_dict()
 
-        # Fetch babies from subcollection
-        babies_ref = user_ref.collection("baby").stream()  # 🔹 Correct Firestore collection
-        babies = [{"name": baby.id} for baby in babies_ref]  # 🔹 Get baby names properly
+        # ✅ Fix: Fetch babies from the "baby" subcollection
+        babies_ref = user_ref.collection("baby").stream()
+        babies = [baby.id for baby in babies_ref]  # Get baby names as a list
 
-        user_data["babies"] = babies  # Attach babies to user data
+        user_data["babies"] = babies  # Attach to user response
 
         return jsonify({"status": "success", "data": user_data}), 200
 

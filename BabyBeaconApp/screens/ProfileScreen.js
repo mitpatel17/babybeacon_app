@@ -20,30 +20,38 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      try {
-        const username = await AsyncStorage.getItem("username");
-        if (!username) {
-          console.error("No username found in storage.");
-          setLoading(false);
-          return;
+        try {
+          const username = await AsyncStorage.getItem("username");
+          if (!username) {
+            console.error("No username found in storage.");
+            setLoading(false);
+            return;
+          }
+      
+          const response = await axios.get(`${API_BASE_URL}/get_profile`, { params: { username } });
+      
+          if (response.data.status === "success") {
+            const fetchedUser = response.data.data;
+            setUser(fetchedUser);
+            setUpdatedData(fetchedUser);
+      
+            // ✅ Ensure babies is an array of strings
+            const fetchedBabies = Array.isArray(fetchedUser.babies)
+              ? fetchedUser.babies.map(baby => (typeof baby === "string" ? baby : baby.name))
+              : [];
+      
+            console.log("Processed Babies:", fetchedBabies);  // ✅ Debugging Log
+      
+            setBabies(fetchedBabies);
+          } else {
+            console.error("Profile Fetch Failed:", response.data.message);
+          }
+        } catch (error) {
+          console.error("Profile Fetch Error:", error);
         }
-
-        const response = await axios.get(`${API_BASE_URL}/get_profile`, { params: { username } });
-
-        if (response.data.status === "success") {
-          const fetchedUser = response.data.data;
-          setUser(fetchedUser);
-          setUpdatedData(fetchedUser);
-          setBabies(fetchedUser.babies || []);
-        } else {
-          console.error("Profile Fetch Failed:", response.data.message);
-        }
-      } catch (error) {
-        console.error("Profile Fetch Error:", error);
-      }
-      setLoading(false);
-    };
-
+        setLoading(false);
+      };
+      
     fetchProfile();
   }, []);
 
@@ -91,12 +99,17 @@ const ProfileScreen = () => {
   };
 
   const handleRemoveBaby = async (babyName) => {
+    if (!babyName || typeof babyName !== "string") {
+      console.error("Invalid baby name:", babyName);
+      return;
+    }
+  
     try {
       const username = await AsyncStorage.getItem("username");
       const response = await axios.post(`${API_BASE_URL}/remove_baby`, { username, baby_name: babyName });
-
+  
       if (response.data.status === "success") {
-        setBabies(babies.filter((b) => b !== babyName));
+        setBabies(babies.filter(b => b !== babyName));  // ✅ Remove using name directly
       } else {
         Alert.alert("Error", response.data.message);
       }
@@ -105,6 +118,7 @@ const ProfileScreen = () => {
       Alert.alert("Error", "Could not remove baby.");
     }
   };
+  
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
@@ -197,19 +211,29 @@ const ProfileScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Update Babies</Text>
 
-            <TextInput style={styles.input} placeholder="Enter Baby Name" value={newBaby} onChangeText={setNewBaby} />
+            <TextInput 
+              style={styles.input} 
+              placeholder="Enter Baby Name" 
+              value={newBaby} 
+              onChangeText={setNewBaby} 
+            />
+            
             <TouchableOpacity style={styles.greenButton} onPress={handleAddBaby}>
               <Text style={styles.buttonText}>Add Baby</Text>
             </TouchableOpacity>
 
-            {babies.map((baby, index) => (
-              <View key={index} style={styles.babyItem}>
-                <Text style={styles.babyText}>{baby.name || baby}</Text>  {/* ✅ Extract name correctly */}
-                <TouchableOpacity onPress={() => handleRemoveBaby(baby.name || baby)}>
-                  <FontAwesome name="trash" size={20} color="red" />
-                </TouchableOpacity>
-              </View>
-            ))}
+            {babies.length > 0 ? (
+              babies.map((baby, index) => (
+                <View key={index} style={styles.babyItem}>
+                  <Text style={styles.babyText}>{String(baby)}</Text>  
+                  <TouchableOpacity onPress={() => handleRemoveBaby(baby)}>
+                    <FontAwesome name="trash" size={20} color="red" />
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noBabiesText}>No babies found.</Text>
+            )}
 
             <TouchableOpacity style={styles.blueButton} onPress={() => setBabyModalVisible(false)}>
               <Text style={styles.buttonText}>Close</Text>
@@ -227,7 +251,21 @@ const styles = StyleSheet.create({
   profileContainer: { width: "100%", alignItems: "center" },
   label: { fontSize: 16, fontWeight: "bold", marginTop: 10, alignSelf: "flex-start", marginLeft: 20 },
   input: { width: "90%", height: 40, borderColor: "#ccc", borderWidth: 1, marginBottom: 15, padding: 8, borderRadius: 5, backgroundColor: "#f9f9f9" },
-
+  babyItem: {
+    flexDirection: "row",  // ✅ Aligns text and icon in a row
+    justifyContent: "space-between", // ✅ Spaces them apart
+    alignItems: "center",  // ✅ Ensures vertical alignment
+    width: "90%",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  babyText: {
+    fontSize: 16,
+    color: "#333",
+    flex: 1,  // ✅ Allows text to take up available space
+  },
   modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
   modalContent: { width: "85%", backgroundColor: "white", padding: 20, borderRadius: 10, alignItems: "center" },
   modalTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 15 },
