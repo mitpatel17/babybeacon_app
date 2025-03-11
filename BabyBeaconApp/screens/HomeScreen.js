@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 const HomeScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -181,63 +183,47 @@ const HomeScreen = () => {
     clearInterval(pollingInterval); // ✅ Stop polling, but don't clear scans
   };
 
-  useEffect(() => {
-    const fetchResponses = async (username, scanningBaby) => {
-      try {
-        const response = await axios.get(`${API_URL}/get_baby_responses`, {
-          params: { username, scanning_baby: scanningBaby },
-        });
-    
-        if (response.data.status === "success") {
-          setResponses(response.data.responses || []);
-        } else {
-          console.error("Failed to fetch responses:", response.data.message);
-        }
-      } catch (error) {
-        console.error("Error fetching responses:", error);
+  const fetchStarredResponses = async (username, scanningBaby) => {
+    try {
+      const response = await axios.get(`${API_URL}/get_starred_responses`, {  
+        params: { username, scanning_baby: scanningBaby },
+      });
+  
+      if (response.data.status === "success") {
+        setResponses(response.data.starred_responses || []);
+      } else {
+        console.error("Failed to fetch starred responses:", response.data.message);
       }
-    };
-    
-    const fetchProfile = async () => {
-      try {
+    } catch (error) {
+      console.error("Error fetching starred responses:", error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfile = async () => {
         const storedUsername = await AsyncStorage.getItem("username");
         if (!storedUsername) {
           console.error("No username found in storage.");
           return;
         }
-    
+  
         const response = await axios.get(`${API_URL}/get_profile`, {
           params: { username: storedUsername },
         });
-    
+  
         if (response.data.status === "success") {
           const userData = response.data.data;
-    
-          setCurrentRideId(userData.last_ride_Id);
-    
           if (userData.scanning_baby) {
             setScanningBaby(userData.scanning_baby);
-            await AsyncStorage.setItem("scanning_baby", userData.scanning_baby);
-            fetchResponses(storedUsername, userData.scanning_baby); 
-          } else {
-            setScanningBaby(null);
-            setResponses([]);
+            fetchStarredResponses(storedUsername, userData.scanning_baby);
           }
-    
-          if (userData.device_id) {
-            setDeviceId(userData.device_id);
-            await AsyncStorage.setItem("device_id", userData.device_id);
-          }
-        } else {
-          console.error("Profile Fetch Failed:", response.data.message);
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-      }
-    };    
-
-    fetchProfile();
-  }, []);
+      };
+  
+      fetchProfile();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>

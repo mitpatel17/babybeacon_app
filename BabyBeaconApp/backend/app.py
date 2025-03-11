@@ -176,6 +176,30 @@ def update_profile():
         logging.error(f"Update Profile Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/update_starred_responses", methods=["POST"])
+def update_starred_responses():
+    data = request.json
+    username = data.get("username")
+    baby_name = data.get("baby_name")
+    starred_responses = data.get("starred_responses", [])
+
+    user_ref = db.collection("users").document(username).collection("baby").document(baby_name)
+    user_ref.update({"starred_responses": starred_responses})
+
+    return jsonify({"status": "success", "message": "Updated starred responses."}), 200
+
+@app.route("/delete_response", methods=["POST"])
+def delete_response():
+    data = request.json
+    username = data.get("username")
+    baby_name = data.get("baby_name")
+    response = data.get("response")
+
+    baby_ref = db.collection("users").document(username).collection("baby").document(baby_name)
+    baby_ref.update({f"responses.{response}": firestore.DELETE_FIELD})
+
+    return jsonify({"status": "success", "message": "Response deleted."}), 200
+
 @app.route('/get_baby_responses', methods=['GET'])
 def get_baby_responses():
     try:
@@ -439,6 +463,68 @@ def stop_scan():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/add_response", methods=["POST"])
+def add_response():
+    """
+    Adds a response (name + URL) to a specific baby under a user's account.
+    """
+    try:
+        data = request.json
+        username = data.get("username")
+        baby_name = data.get("baby_name")
+        response_name = data.get("response_name")
+        response_url = data.get("response_url")
+
+        if not username or not baby_name or not response_name or not response_url:
+            return jsonify({"status": "fail", "message": "Missing required fields"}), 400
+
+        user_ref = db.collection("users").document(username)
+        baby_ref = user_ref.collection("baby").document(baby_name)
+        baby_doc = baby_ref.get()
+
+        if not baby_doc.exists:
+            return jsonify({"status": "fail", "message": f"Baby '{baby_name}' not found."}), 404
+
+        # 🔹 Fetch current responses and update with the new one
+        baby_data = baby_doc.to_dict()
+        responses = baby_data.get("responses", {})
+
+        if response_name in responses:
+            return jsonify({"status": "fail", "message": "Response name already exists"}), 400
+
+        responses[response_name] = response_url  # Add response name and URL
+
+        # 🔹 Update Firestore
+        baby_ref.update({"responses": responses})
+
+        return jsonify({"status": "success", "message": f"Response '{response_name}' added successfully."}), 201
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/get_starred_responses", methods=["GET"])
+def get_starred_responses():
+    username = request.args.get("username")
+    scanning_baby = request.args.get("scanning_baby")
+
+    if not username or not scanning_baby:
+        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+    try:
+        user_ref = db.collection("users").document(username)
+        baby_ref = user_ref.collection("baby").document(scanning_baby)
+        baby_doc = baby_ref.get()
+
+        if baby_doc.exists:
+            baby_data = baby_doc.to_dict()
+            starred_responses = baby_data.get("starred_responses", [])
+
+            return jsonify({"status": "success", "starred_responses": starred_responses}), 200
+        else:
+            return jsonify({"status": "error", "message": "Baby not found"}), 404
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 ### 6️⃣ SEND YOUTUBE RESPONSE API ###
 @app.route("/send_response", methods=["POST"])
