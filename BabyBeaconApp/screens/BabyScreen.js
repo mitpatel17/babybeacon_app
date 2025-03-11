@@ -15,6 +15,7 @@ import API_URL from "../config";
 import { FontAwesome } from "@expo/vector-icons";
 
 const BabyScreen = () => {
+  const [screenKey, setScreenKey] = useState(0); // 1️⃣ Forcing a full screen reload
   const [babies, setBabies] = useState([]);
   const [selectedBaby, setSelectedBaby] = useState(null);
   const [responses, setResponses] = useState([]);
@@ -24,16 +25,18 @@ const BabyScreen = () => {
   const [newResponseName, setNewResponseName] = useState("");
   const [newResponseUrl, setNewResponseUrl] = useState("");
 
+  // 2️⃣ Load or reload babies whenever screenKey changes
   useEffect(() => {
     fetchBabies();
-  }, []);
+  }, [screenKey]);
 
+  // Only fetch responses after selectedBaby is set
   useEffect(() => {
     if (selectedBaby) {
       fetchResponses(selectedBaby);
     }
   }, [selectedBaby]);
-  
+
   const fetchBabies = async () => {
     try {
       const storedUsername = await AsyncStorage.getItem("username");
@@ -44,11 +47,10 @@ const BabyScreen = () => {
       if (response.data.status === "success") {
         const userData = response.data.data;
         setBabies(userData.babies || []);
-        setSelectedBaby(userData.scanning_baby || (userData.babies.length > 0 ? userData.babies[0] : null));
-
-        if (userData.scanning_baby) {
-          fetchResponses(userData.scanning_baby);
-        }
+        setSelectedBaby(
+          userData.scanning_baby ||
+            (userData.babies.length > 0 ? userData.babies[0] : null)
+        );
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -72,26 +74,27 @@ const BabyScreen = () => {
   };
 
   const handleBabyChange = async (babyName) => {
-    setSelectedBaby(babyName);
-    setPickerVisible(false); // 🔹 Closes the Picker modal
-  
+    setPickerVisible(false);
+
     const storedUsername = await AsyncStorage.getItem("username");
     try {
+      // Update scanning baby in Firestore
       await axios.post(`${API_URL}/update_profile`, {
         username: storedUsername,
         updates: { scanning_baby: babyName },
       });
-      fetchResponses(babyName); // 🔹 Ensures responses load correctly
+
+      // 3️⃣ Force a full reload by incrementing screenKey
+      setScreenKey((prev) => prev + 1);
     } catch (error) {
       console.error("Error updating scanning baby:", error);
     }
   };
-  
+
   const addNewResponse = async () => {
     if (!newResponseName || !newResponseUrl) return;
 
     const storedUsername = await AsyncStorage.getItem("username");
-
     try {
       await axios.post(`${API_URL}/add_response`, {
         username: storedUsername,
@@ -111,9 +114,10 @@ const BabyScreen = () => {
 
   const toggleStarResponse = async (responseText) => {
     let updatedStarredResponses = [...starredResponses];
-
     if (updatedStarredResponses.includes(responseText)) {
-      updatedStarredResponses = updatedStarredResponses.filter((r) => r !== responseText);
+      updatedStarredResponses = updatedStarredResponses.filter(
+        (r) => r !== responseText
+      );
     } else {
       if (updatedStarredResponses.length < 3) {
         updatedStarredResponses.push(responseText);
@@ -138,8 +142,13 @@ const BabyScreen = () => {
   };
 
   const deleteResponse = async (responseText) => {
-    const storedUsername = await AsyncStorage.getItem("username");
+    // 🚨 If response is starred, do not allow deletion
+    if (starredResponses.includes(responseText)) {
+      alert("Cannot delete a starred response. Please unstar first.");
+      return;
+    }
 
+    const storedUsername = await AsyncStorage.getItem("username");
     try {
       await axios.post(`${API_URL}/delete_response`, {
         username: storedUsername,
@@ -155,13 +164,19 @@ const BabyScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} key={screenKey}>
       <Text style={styles.header}>Baby Selected:</Text>
 
-      <TouchableOpacity style={styles.pickerButton} onPress={() => setPickerVisible(true)}>
-        <Text style={styles.pickerButtonText}>{selectedBaby || "Select a Baby"}</Text>
+      <TouchableOpacity
+        style={styles.pickerButton}
+        onPress={() => setPickerVisible(true)}
+      >
+        <Text style={styles.pickerButtonText}>
+          {selectedBaby || "Select a Baby"}
+        </Text>
       </TouchableOpacity>
 
+      {/* Picker Modal */}
       <Modal visible={isPickerVisible} transparent={true} animationType="slide">
         <View style={styles.pickerModal}>
           <View style={styles.pickerContainer}>
@@ -174,13 +189,17 @@ const BabyScreen = () => {
                 <Picker.Item key={index} label={baby} value={baby} />
               ))}
             </Picker>
-            <TouchableOpacity style={styles.closePicker} onPress={() => setPickerVisible(false)}>
+            <TouchableOpacity
+              style={styles.closePicker}
+              onPress={() => setPickerVisible(false)}
+            >
               <Text style={styles.closePickerText}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
+      {/* Responses */}
       <View style={styles.responseBox}>
         <View style={styles.responseHeader}>
           <Text style={styles.responseTitle}>Responses:</Text>
@@ -194,12 +213,23 @@ const BabyScreen = () => {
             responses.map((response, index) => (
               <View key={index} style={styles.responseRow}>
                 <TouchableOpacity onPress={() => toggleStarResponse(response)}>
-                  <FontAwesome name={starredResponses.includes(response) ? "star" : "star-o"} size={24} color={starredResponses.includes(response) ? "#FFD700" : "#888"} />
+                  <FontAwesome
+                    name={starredResponses.includes(response) ? "star" : "star-o"}
+                    size={24}
+                    color={
+                      starredResponses.includes(response) ? "#FFD700" : "#888"
+                    }
+                  />
                 </TouchableOpacity>
                 <Text style={styles.responseText}>{response}</Text>
-                <TouchableOpacity onPress={() => deleteResponse(response)}>
-                  <FontAwesome name="trash" size={24} color="#FF3B30" />
-                </TouchableOpacity>
+                {starredResponses.includes(response) ? (
+                  // 🚫 Show disabled trash if starred
+                  <FontAwesome name="trash" size={24} color="#ccc" />
+                ) : (
+                  <TouchableOpacity onPress={() => deleteResponse(response)}>
+                    <FontAwesome name="trash" size={24} color="#FF3B30" />
+                  </TouchableOpacity>
+                )}
               </View>
             ))
           ) : (
@@ -213,8 +243,18 @@ const BabyScreen = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add Response</Text>
-            <TextInput style={styles.input} placeholder="Response Name" value={newResponseName} onChangeText={setNewResponseName} />
-            <TextInput style={styles.input} placeholder="Response URL" value={newResponseUrl} onChangeText={setNewResponseUrl} />
+            <TextInput
+              style={styles.input}
+              placeholder="Response Name"
+              value={newResponseName}
+              onChangeText={setNewResponseName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Response URL"
+              value={newResponseUrl}
+              onChangeText={setNewResponseUrl}
+            />
             <TouchableOpacity style={styles.addButton} onPress={addNewResponse}>
               <Text style={styles.addButtonText}>Add</Text>
             </TouchableOpacity>
