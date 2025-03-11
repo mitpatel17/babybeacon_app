@@ -15,7 +15,7 @@ import API_URL from "../config";
 import { FontAwesome } from "@expo/vector-icons";
 
 const BabyScreen = () => {
-  const [screenKey, setScreenKey] = useState(0); // 1️⃣ Forcing a full screen reload
+  const [screenKey, setScreenKey] = useState(0); // Forcing a full screen reload
   const [babies, setBabies] = useState([]);
   const [selectedBaby, setSelectedBaby] = useState(null);
   const [responses, setResponses] = useState([]);
@@ -25,7 +25,7 @@ const BabyScreen = () => {
   const [newResponseName, setNewResponseName] = useState("");
   const [newResponseUrl, setNewResponseUrl] = useState("");
 
-  // 2️⃣ Load or reload babies whenever screenKey changes
+  // Load or reload babies whenever screenKey changes
   useEffect(() => {
     fetchBabies();
   }, [screenKey]);
@@ -37,6 +37,7 @@ const BabyScreen = () => {
     }
   }, [selectedBaby]);
 
+  // 1) Fetch user profile -> get baby list and scanning baby
   const fetchBabies = async () => {
     try {
       const storedUsername = await AsyncStorage.getItem("username");
@@ -57,6 +58,7 @@ const BabyScreen = () => {
     }
   };
 
+  // 2) Fetch baby responses & starred responses from /get_baby_responses
   const fetchResponses = async (babyName) => {
     try {
       const storedUsername = await AsyncStorage.getItem("username");
@@ -65,6 +67,7 @@ const BabyScreen = () => {
       });
 
       if (response.data.status === "success") {
+        // The server returns {"responses": [...], "starred_responses": [...]} 
         setResponses(response.data.responses || []);
         setStarredResponses(response.data.starred_responses || []);
       }
@@ -73,24 +76,25 @@ const BabyScreen = () => {
     }
   };
 
+  // 3) Switch baby in Firestore, then reload entire screen
   const handleBabyChange = async (babyName) => {
     setPickerVisible(false);
-
     const storedUsername = await AsyncStorage.getItem("username");
+
     try {
-      // Update scanning baby in Firestore
       await axios.post(`${API_URL}/update_profile`, {
         username: storedUsername,
         updates: { scanning_baby: babyName },
       });
 
-      // 3️⃣ Force a full reload by incrementing screenKey
+      // Force a full reload by incrementing screenKey
       setScreenKey((prev) => prev + 1);
     } catch (error) {
       console.error("Error updating scanning baby:", error);
     }
   };
 
+  // Add a new response in Firestore
   const addNewResponse = async () => {
     if (!newResponseName || !newResponseUrl) return;
 
@@ -112,13 +116,17 @@ const BabyScreen = () => {
     }
   };
 
+  // Star / Unstar a response
   const toggleStarResponse = async (responseText) => {
     let updatedStarredResponses = [...starredResponses];
+
     if (updatedStarredResponses.includes(responseText)) {
+      // Unstar
       updatedStarredResponses = updatedStarredResponses.filter(
         (r) => r !== responseText
       );
     } else {
+      // Star
       if (updatedStarredResponses.length < 3) {
         updatedStarredResponses.push(responseText);
       } else {
@@ -136,13 +144,15 @@ const BabyScreen = () => {
         baby_name: selectedBaby,
         starred_responses: updatedStarredResponses,
       });
+      // Optionally re-fetch to ensure you have the latest data from Firestore
+      // fetchResponses(selectedBaby);
     } catch (error) {
       console.error("Error updating starred responses:", error);
     }
   };
 
+  // Delete response if it’s not starred
   const deleteResponse = async (responseText) => {
-    // 🚨 If response is starred, do not allow deletion
     if (starredResponses.includes(responseText)) {
       alert("Cannot delete a starred response. Please unstar first.");
       return;
@@ -199,7 +209,7 @@ const BabyScreen = () => {
         </View>
       </Modal>
 
-      {/* Responses */}
+      {/* Response List */}
       <View style={styles.responseBox}>
         <View style={styles.responseHeader}>
           <Text style={styles.responseTitle}>Responses:</Text>
@@ -222,8 +232,9 @@ const BabyScreen = () => {
                   />
                 </TouchableOpacity>
                 <Text style={styles.responseText}>{response}</Text>
+
                 {starredResponses.includes(response) ? (
-                  // 🚫 Show disabled trash if starred
+                  // Show disabled trash if starred
                   <FontAwesome name="trash" size={24} color="#ccc" />
                 ) : (
                   <TouchableOpacity onPress={() => deleteResponse(response)}>
@@ -268,6 +279,7 @@ const BabyScreen = () => {
   );
 };
 
+// -------------- STYLES --------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -356,12 +368,6 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
     marginVertical: 10,
-  },
-  starIcon: {
-    marginRight: 10,
-  },
-  trashIcon: {
-    marginLeft: 10,
   },
   modalContainer: {
     flex: 1,

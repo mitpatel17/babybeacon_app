@@ -200,27 +200,16 @@ def delete_response():
 
     return jsonify({"status": "success", "message": "Response deleted."}), 200
 
-@app.route('/get_baby_responses', methods=['GET'])
+@app.route("/get_baby_responses", methods=["GET"])
 def get_baby_responses():
     try:
-        username = request.args.get('username')
-        if not username:
-            return jsonify({"status": "error", "message": "Username is required"}), 400
-        
-        # Fetch user document
+        username = request.args.get("username")
+        scanning_baby = request.args.get("scanning_baby")
+
+        if not username or not scanning_baby:
+            return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
         user_ref = db.collection("users").document(username)
-        user_doc = user_ref.get()
-
-        if not user_doc.exists:
-            return jsonify({"status": "error", "message": "User not found"}), 404
-
-        user_data = user_doc.to_dict()
-        scanning_baby = user_data.get("scanning_baby")
-
-        if not scanning_baby:
-            return jsonify({"status": "error", "message": "No scanning baby found"}), 404
-
-        # Fetch baby responses
         baby_ref = user_ref.collection("baby").document(scanning_baby)
         baby_doc = baby_ref.get()
 
@@ -228,13 +217,18 @@ def get_baby_responses():
             return jsonify({"status": "error", "message": "Baby not found"}), 404
 
         baby_data = baby_doc.to_dict()
-        responses = baby_data.get("responses", {})
 
-        # Extract response keys (titles)
-        response_keys = list(responses.keys())
+        # Convert the 'responses' dict to a list of keys
+        responses_dict = baby_data.get("responses", {})
+        response_keys = list(responses_dict.keys())
 
-        return jsonify({"status": "success", "responses": response_keys})
+        starred_responses = baby_data.get("starred_responses", [])
 
+        return jsonify({
+            "status": "success",
+            "responses": response_keys,
+            "starred_responses": starred_responses
+        }), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
