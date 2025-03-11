@@ -307,7 +307,8 @@ def add_baby():
         baby_ref = user_ref.collection("baby").document(baby_name)
         baby_ref.set({
             "responses": {},  # Empty response map
-            "rides": []       # Empty rides array
+            "rides": [],       # Empty rides array
+            "starred_responses" : []
         })
 
         return jsonify({"status": "success", "message": f"Baby '{baby_name}' added successfully."}), 201
