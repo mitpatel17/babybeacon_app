@@ -33,12 +33,13 @@ const BabyScreen = () => {
       fetchResponses(selectedBaby);
     }
   }, [selectedBaby]);
-
+  
   const fetchBabies = async () => {
     try {
       const storedUsername = await AsyncStorage.getItem("username");
-      const response = await axios.get(`${API_URL}/get_profile`, { params: { username: storedUsername } });
-
+      const response = await axios.get(`${API_URL}/get_profile`, {
+        params: { username: storedUsername },
+      });
 
       if (response.data.status === "success") {
         const userData = response.data.data;
@@ -57,7 +58,9 @@ const BabyScreen = () => {
   const fetchResponses = async (babyName) => {
     try {
       const storedUsername = await AsyncStorage.getItem("username");
-      const response = await axios.get(`${API_URL}/get_baby_responses`, { params: { username: storedUsername, scanning_baby: babyName } });
+      const response = await axios.get(`${API_URL}/get_baby_responses`, {
+        params: { username: storedUsername, scanning_baby: babyName },
+      });
 
       if (response.data.status === "success") {
         setResponses(response.data.responses || []);
@@ -70,17 +73,39 @@ const BabyScreen = () => {
 
   const handleBabyChange = async (babyName) => {
     setSelectedBaby(babyName);
-    setPickerVisible(false);
-    fetchResponses(babyName);
-
+    setPickerVisible(false); // 🔹 Closes the Picker modal
+  
     const storedUsername = await AsyncStorage.getItem("username");
     try {
       await axios.post(`${API_URL}/update_profile`, {
         username: storedUsername,
         updates: { scanning_baby: babyName },
       });
+      fetchResponses(babyName); // 🔹 Ensures responses load correctly
     } catch (error) {
       console.error("Error updating scanning baby:", error);
+    }
+  };
+  
+  const addNewResponse = async () => {
+    if (!newResponseName || !newResponseUrl) return;
+
+    const storedUsername = await AsyncStorage.getItem("username");
+
+    try {
+      await axios.post(`${API_URL}/add_response`, {
+        username: storedUsername,
+        baby_name: selectedBaby,
+        response_name: newResponseName,
+        response_url: newResponseUrl,
+      });
+
+      setResponses([...responses, newResponseName]);
+      setNewResponseName("");
+      setNewResponseUrl("");
+      setAddModalVisible(false);
+    } catch (error) {
+      console.error("Error adding new response:", error);
     }
   };
 
@@ -107,7 +132,6 @@ const BabyScreen = () => {
         baby_name: selectedBaby,
         starred_responses: updatedStarredResponses,
       });
-      console.log("Updated starred responses:", updatedStarredResponses);
     } catch (error) {
       console.error("Error updating starred responses:", error);
     }
@@ -125,33 +149,8 @@ const BabyScreen = () => {
 
       setResponses(responses.filter((r) => r !== responseText));
       setStarredResponses(starredResponses.filter((r) => r !== responseText));
-
     } catch (error) {
       console.error("Error deleting response:", error);
-    }
-  };
-
-  const addNewResponse = async () => {
-    if (!newResponseName || !newResponseUrl) return;
-
-    const storedUsername = await AsyncStorage.getItem("username");
-
-    try {
-      await axios.post(`${API_URL}/add_response`, {
-        username: storedUsername,
-        baby_name: selectedBaby,
-        response_name: newResponseName,
-        response_url: newResponseUrl,
-      });
-
-      setResponses([...responses, newResponseName]);
-      setNewResponseName("");
-      setNewResponseUrl("");
-      setAddModalVisible(false);
-
-      console.log("Added new response:", newResponseName);
-    } catch (error) {
-      console.error("Error adding new response:", error);
     }
   };
 
@@ -166,7 +165,11 @@ const BabyScreen = () => {
       <Modal visible={isPickerVisible} transparent={true} animationType="slide">
         <View style={styles.pickerModal}>
           <View style={styles.pickerContainer}>
-            <Picker selectedValue={selectedBaby} onValueChange={handleBabyChange} style={styles.picker}>
+            <Picker
+              selectedValue={selectedBaby}
+              onValueChange={(itemValue) => handleBabyChange(itemValue)}
+              style={styles.picker}
+            >
               {babies.map((baby, index) => (
                 <Picker.Item key={index} label={baby} value={baby} />
               ))}
@@ -179,10 +182,13 @@ const BabyScreen = () => {
       </Modal>
 
       <View style={styles.responseBox}>
-        <Text style={styles.responseTitle}>Responses:</Text>
-        <TouchableOpacity onPress={() => setAddModalVisible(true)}>
-          <FontAwesome name="plus-circle" size={24} color="#007BFF" style={styles.addIcon} />
-        </TouchableOpacity>
+        <View style={styles.responseHeader}>
+          <Text style={styles.responseTitle}>Responses:</Text>
+          <TouchableOpacity onPress={() => setAddModalVisible(true)}>
+            <FontAwesome name="plus-circle" size={24} color="#007BFF" />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView nestedScrollEnabled={true}>
           {responses.length > 0 ? (
             responses.map((response, index) => (
@@ -201,6 +207,23 @@ const BabyScreen = () => {
           )}
         </ScrollView>
       </View>
+
+      {/* Add Response Modal */}
+      <Modal visible={isAddModalVisible} transparent={true} animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Response</Text>
+            <TextInput style={styles.input} placeholder="Response Name" value={newResponseName} onChangeText={setNewResponseName} />
+            <TextInput style={styles.input} placeholder="Response URL" value={newResponseUrl} onChangeText={setNewResponseUrl} />
+            <TouchableOpacity style={styles.addButton} onPress={addNewResponse}>
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+              <Text style={styles.closeModalText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -269,11 +292,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 10,
   },
   responseTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 10,
   },
   responseRow: {
     flexDirection: "row",
@@ -286,19 +309,19 @@ const styles = StyleSheet.create({
   responseText: {
     fontSize: 18,
     flex: 1,
-    marginLeft: 10,
+    textAlign: "center",
+  },
+  noResponsesText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginVertical: 10,
   },
   starIcon: {
     marginRight: 10,
   },
   trashIcon: {
     marginLeft: 10,
-  },
-  noResponsesText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginTop: 10,
   },
   modalContainer: {
     flex: 1,
@@ -339,18 +362,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
   },
-  disabledButton: {
-    backgroundColor: "#ccc",
-  },
   closeModalText: {
     fontSize: 18,
     color: "#007BFF",
-  },
-  noResponsesText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginVertical: 10,
   },
 });
 
