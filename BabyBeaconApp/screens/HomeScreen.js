@@ -308,13 +308,13 @@ const HomeScreen = () => {
       </View>
 
       <View style={styles.ghostBox}>
-        <Text style={styles.ghostText}>
-          {!isScanning
-            ? "Waiting to start!"
-            : scans.length === 0
-            ? "Waiting for scans..."
-            : "Latest Scans:"}
-        </Text>
+      <Text style={styles.ghostText}>
+        {!isScanning
+          ? "Showing Last Ride - Waiting to start!"
+          : scans.length === 0
+          ? `Ride: ${currentRideId}... Waiting for scans...`
+          : `Ride: ${currentRideId} - Latest Scans:`}
+      </Text>
 
         <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
           {scans.map((scan) => (
