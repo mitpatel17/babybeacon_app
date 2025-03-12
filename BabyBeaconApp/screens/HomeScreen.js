@@ -10,46 +10,62 @@ const HomeScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
   const [scanningBaby, setScanningBaby] = useState(null); // Default: null
-  const [responses, setResponses] = useState([]);
+  const [responses, setStarredResponses] = useState([]);
+  const [allResponses, setAllResponses] = useState([]);
   const [activeResponse, setActiveResponse] = useState("None");
-  const [activeResponseUrl, setActiveResponseUrl] = useState(null);
   const [currentRideId, setCurrentRideId] = useState(null);
   const [scans, setScans] = useState([]);
 
   const handleResponseClick = async (responseKey) => {
     setActiveResponse(responseKey);
   
-    const currentDeviceId = deviceId; // Use deviceId directly
-    const currentScanningBaby = scanningBaby; // Use scanningBaby directly
+    const currentDeviceId = deviceId;
+    const currentScanningBaby = scanningBaby;
     const storedUsername = await AsyncStorage.getItem("username");
+  
     if (responseKey === "None") {
-      setActiveResponseUrl(""); // Ensure empty string instead of null
-      await updateDeviceResponse(currentDeviceId, ""); // Update Firestore
+      setActiveResponseUrl(""); // Ensure empty string
+      await updateDeviceResponse(currentDeviceId, "");
       return;
     }
   
     try {
-      // 🔹 Fetch the response URL for the selected responseKey
       const response = await axios.get(`${API_URL}/get_response_url`, {
         params: {
           username: storedUsername,
           scanning_baby: currentScanningBaby,
-          response_key: responseKey,
+          response_key: responseKey,  // Pass the selected response key
         },
       });
   
       if (response.data.status === "success") {
         const url = response.data.url;
         setActiveResponseUrl(url);
-        await updateDeviceResponse(currentDeviceId, url); // 🔹 Update Firestore with new URL
+        await updateDeviceResponse(currentDeviceId, url);
       } else {
         console.error("Failed to fetch response URL:", response.data.message);
       }
     } catch (error) {
       console.error("Error fetching response URL:", error);
     }
-  };
+  };  
+
+  const handleRandomClick = async () => {
+    if (allResponses.length === 0) {
+      console.error("No responses available to randomize.");
+      return;
+    }
   
+    // 🎲 Pick a random response from all available response keys
+    const randomIndex = Math.floor(Math.random() * allResponses.length);
+    const randomResponse = allResponses[randomIndex];
+  
+    console.log(`🎲 Selected Random Response: ${randomResponse}`);
+  
+    setActiveResponse("Random"); // Highlight the Random button
+    handleResponseClick(randomResponse); // Play the selected response
+  };  
+
   // 🔹 Function to Update Firestore Device Response
   const updateDeviceResponse = async (deviceId, responseUrl) => {
     try {
@@ -64,7 +80,7 @@ const HomeScreen = () => {
   };
 
   const toggleScan = async () => {
-    const storedUsername = await AsyncStorage.getItem("username"); // Fetch username
+    const storedUsername = await AsyncStorage.getItem("username"); 
     if (!deviceId || !storedUsername) {
       console.error("Device ID or username is missing.");
       return;
@@ -113,14 +129,13 @@ const HomeScreen = () => {
     }
   };
 
-  let pollingInterval; // Store interval globally
+  let pollingInterval; 
 
   const pollForScans = async (rideId) => {
     console.log("🚀 Starting scan polling for Ride ID:", rideId);
   
     pollingInterval = setInterval(async () => {
       try {
-        // 🔹 Check device status first
         const statusResponse = await axios.get(`${API_URL}/get_device_status`, {
           params: { device_id: deviceId },
         });
@@ -136,7 +151,6 @@ const HomeScreen = () => {
           }
         }
   
-        // 🔹 Fetch ride scans
         const rideResponse = await axios.get(`${API_URL}/get_ride_data`, {
           params: { device_id: deviceId, ride_id: `ride_${rideId}` },
         });
@@ -144,28 +158,22 @@ const HomeScreen = () => {
         if (rideResponse.data.status === "success") {
           console.log("✅ Ride scan data:", rideResponse.data);
   
-          // Convert scan data into an array of objects
           const scanEntries = Object.entries(rideResponse.data.scans || {}).map(([key, value]) => ({
             id: key,
             ...value,
           }));
   
-          // 🔹 Filter only scans with "scan" in the ID
           const filteredScans = scanEntries.filter((scan) => scan.id.includes("scan"));
   
-          // Sort scans so the latest appears on top
           filteredScans.sort((a, b) => parseInt(b.id.replace("scan", "")) - parseInt(a.id.replace("scan", "")));
   
-          // 🔹 Only add new scans that aren’t already in state
           setScans((prevScans) => {
             const newScans = filteredScans.filter((newScan) =>
               !prevScans.some((existingScan) => existingScan.id === newScan.id)
             );
   
-            // If no new scans, return the same state (prevents duplicate stacking)
             if (newScans.length === 0) return prevScans;
   
-            // 🔹 Ensure latest scans appear first
             return [...newScans, ...prevScans];
           });
   
@@ -180,24 +188,30 @@ const HomeScreen = () => {
   };
   
   const stopRidePolling = () => {
-    clearInterval(pollingInterval); // ✅ Stop polling, but don't clear scans
+    clearInterval(pollingInterval);
   };
 
-  const fetchStarredResponses = async (username, scanningBaby) => {
+  const fetchAllResponses = async (username, scanningBaby) => {
     try {
-      const response = await axios.get(`${API_URL}/get_starred_responses`, {  
+      const response = await axios.get(`${API_URL}/get_baby_responses`, {  
         params: { username, scanning_baby: scanningBaby },
       });
   
       if (response.data.status === "success") {
-        setResponses(response.data.starred_responses || []);
+        console.log("Fetched Data:", response.data.responses); // Debugging line
+  
+        // ✅ Directly store the response array (not Object.keys)
+        setAllResponses(response.data.responses || []);
+        setStarredResponses(response.data.starred_responses || []);
+  
+        console.log("Stored Responses:", response.data.responses); // Debugging line
       } else {
-        console.error("Failed to fetch starred responses:", response.data.message);
+        console.error("Failed to fetch responses:", response.data.message);
       }
     } catch (error) {
-      console.error("Error fetching starred responses:", error);
+      console.error("Error fetching responses:", error);
     }
-  };
+  };   
 
   useFocusEffect(
     useCallback(() => {
@@ -211,12 +225,18 @@ const HomeScreen = () => {
         const response = await axios.get(`${API_URL}/get_profile`, {
           params: { username: storedUsername },
         });
-  
+
         if (response.data.status === "success") {
           const userData = response.data.data;
+          if (userData.device_id) {
+            setDeviceId(userData.device_id);
+            console.log(`✅ Device ID set: ${userData.device_id}`);
+          } else {
+            console.error("🚨 Device ID not found in user profile.");
+          }
           if (userData.scanning_baby) {
             setScanningBaby(userData.scanning_baby);
-            fetchStarredResponses(storedUsername, userData.scanning_baby);
+            fetchAllResponses(storedUsername, userData.scanning_baby);
           }
         }
       };
@@ -240,40 +260,54 @@ const HomeScreen = () => {
         <Text style={styles.responseTitle}>
           {scanningBaby ? `Responses for ${scanningBaby} Playing:` : "Responses"}
         </Text>
+        <Text style={styles.nowPlayingText}>
+        Now Playing: {activeResponse}
+      </Text>
 
-        {/* Spacer for first button */}
-        <View style={{ height: 10 }} />
+        {/* Row: None + Random */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", marginVertical: 6 }}>
+          <TouchableOpacity
+            style={[
+              styles.responseButton,
+              activeResponse === "None" ? styles.activeButton : styles.inactiveButton,
+            ]}
+            onPress={() => handleResponseClick("None")}
+          >
+            <Text style={styles.responseButtonText}>None</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.responseButton,
-            activeResponse === "None" ? styles.activeButton : styles.inactiveButton,
-          ]}
-          onPress={() => handleResponseClick("None")}
-        >
-          <Text style={styles.responseButtonText}>None</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.responseButton,
+              activeResponse === "Random" ? styles.activeButton : styles.inactiveButton,
+            ]}
+            onPress={handleRandomClick}
+          >
+            <Text style={styles.responseButtonText}>Random</Text>
+          </TouchableOpacity>
+        </View>
 
-        {responses.length > 0 ? (
-          responses.map((response, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.responseButton,
-                activeResponse === response ? styles.activeButton : styles.inactiveButton,
-              ]}
-              onPress={() => handleResponseClick(response)}
-            >
-              <Text style={styles.responseButtonText}>{response}</Text>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.noResponsesText}>No responses available.</Text>
-        )}
-
+        <View style={styles.responseGrid}>
+          {responses.length > 0 ? (
+            responses.map((response, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.responseButton,
+                  activeResponse === response ? styles.activeButton : styles.inactiveButton,
+                ]}
+                onPress={() => handleResponseClick(response)}
+              >
+                <Text style={styles.responseButtonText}>{response}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noResponsesText}>No responses available.</Text>
+          )}
+        </View>
       </View>
+
       <View style={styles.ghostBox}>
-        {/* Keep "Waiting for scans..." even when scans arrive */}
         <Text style={styles.ghostText}>
           {!isScanning
             ? "Waiting to start!"
@@ -282,7 +316,6 @@ const HomeScreen = () => {
             : "Latest Scans:"}
         </Text>
 
-        {/* Scrollable list of scans, latest on top */}
         <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
           {scans.map((scan) => (
             <View key={scan.id} style={styles.scanNotification}>
@@ -303,13 +336,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingTop: 50, // Moves content towards the top
+    paddingTop: 50,
   },
   header: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 10,   // ⬅ Reduce gap between Home & Title
-    marginTop: -30,     // ⬅ Move up closer to "Home"
+    marginBottom: 10,
+    marginTop: -30,
   },
   button: {
     padding: 15,
@@ -327,87 +360,99 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
   },
-  responseButton: {
-    paddingVertical: 8,  // ⬅ Thinner buttons (wrap font)
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginVertical: 4,   // ⬅ Reduce gap between buttons
-    width: "90%",
+  ghostBoxResponses: {
+    flex: 1.2,
+    justifyContent: "flex-start",
     alignItems: "center",
-    justifyContent: "center",
+    padding: 10,
+    borderWidth: 2,
+    borderColor: "#bbb",
+    borderRadius: 10,
+    backgroundColor: "#f9f9f9",
+    width: "90%",
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  responseTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#666",
+  },
+  responseGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap", // Allows responses to move to new rows
+    justifyContent: "space-between", // Spread across the width
+    width: "100%", // Ensures full width usage
+  },
+  responseButton: {
+    flex: 1,              // Let each button fill available space
+    margin: 5,            // Small space between buttons
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#e2ffcc", // default
+    minWidth: "30%",      // Each button takes up 30% of the row
+    maxWidth: "45%",      // Prevents buttons from being too wide
   },
   activeButton: {
-    backgroundColor: "#28A745", // Green when active
+    backgroundColor: "#28A745", // green when active
   },
   inactiveButton: {
-    backgroundColor: "#e2ffcc", // Light blue when inactive
+    backgroundColor: "#e2ffcc",
   },
   responseButtonText: {
-    fontSize: 18,
-    fontWeight: "normal",
+    fontSize: 16,
     color: "#000710",
   },
+  noResponsesText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginVertical: 10,
+  },
   ghostBox: {
-    flex: 2, 
-    justifyContent: "flex-start",  // Prevents stretching
+    flex: 2,
+    justifyContent: "flex-start",
     alignItems: "center",
-    marginTop: 10,  // Add spacing
+    marginTop: 10,
     padding: 10,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
     backgroundColor: "#f9f9f9",
     width: "90%",
-    minHeight: 80,  // Ensures it doesn't disappear when empty
-    maxHeight: 300, // Prevents overflow
-    overflow: "hidden", // Ensures no content flows out
-  },
-  scanContainer: {
-    flexGrow: 1,  
-    maxHeight: 250, // Ensures scans don't push into other elements
-    width: "100%",
-    paddingBottom: 10,
-  },
-  scanNotification: {
-    width: "100%", // ✅ Take full width of ghost box
-    backgroundColor: "#e2f0ff",  
-    padding: 12,
-    marginVertical: 4, 
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#007BFF",
-    alignItems: "flex-start", // ✅ Align text to the left
-    paddingLeft: 15, // ✅ Give a little left padding
-  },
-  scanText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#003366",
-  },
-  ghostBoxResponses: {
-    flex: 1.2,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: 10,
-    borderWidth: 2, // 🔹 Ensure a visible border
-    borderColor: "#bbb", // Light gray border
-    borderRadius: 10,
-    backgroundColor: "#f9f9f9",
-    width: "90%",
-    marginBottom: 15,
-    marginTop: 10 // 🔹 Adds spacing between the two boxes
+    minHeight: 80,
+    maxHeight: 300,
+    overflow: "hidden",
   },
   ghostText: {
-    fontSize: 20, // ⬆ Bigger Title
+    fontSize: 20,
     fontWeight: "bold",
     color: "#444",
     textAlign: "center",
     marginBottom: 10,
   },
-  responseTitle: {
-    fontSize: 18,
+  scanContainer: {
+    flexGrow: 1,
+    maxHeight: 250,
+    width: "100%",
+    paddingBottom: 10,
+  },
+  scanNotification: {
+    width: "100%",
+    backgroundColor: "#e2f0ff",
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#007BFF",
+    alignItems: "flex-start",
+    paddingLeft: 15,
+  },
+  scanText: {
+    fontSize: 14,
     fontWeight: "bold",
-    color: "#666",
+    color: "#003366",
   },
 });
 

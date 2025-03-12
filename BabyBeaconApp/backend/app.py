@@ -17,6 +17,42 @@ cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+import random
+
+@app.route("/get_random_response", methods=["GET"])
+def get_random_response():
+    username = request.args.get("username")
+    scanning_baby = request.args.get("scanning_baby")
+
+    if not username or not scanning_baby:
+        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+    try:
+        user_ref = db.collection("users").document(username)
+        baby_ref = user_ref.collection("baby").document(scanning_baby)
+        baby_doc = baby_ref.get()
+
+        if not baby_doc.exists:
+            return jsonify({"status": "error", "message": "Baby not found"}), 404
+
+        baby_data = baby_doc.to_dict()
+        responses = list(baby_data.get("responses", {}).keys())
+
+        if not responses:
+            return jsonify({"status": "error", "message": "No responses found"}), 404
+
+        random_response = random.choice(responses)
+        response_url = baby_data["responses"].get(random_response, "")
+
+        return jsonify({
+            "status": "success",
+            "response_name": random_response,
+            "response_url": response_url
+        }), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 ### 🔐 CHANGE PASSWORD API ###
 @app.route("/change_password", methods=["POST"])
 def change_password():
