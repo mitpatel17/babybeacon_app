@@ -5,6 +5,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import logging
 logging.basicConfig(level=logging.DEBUG)
+import random
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -16,8 +17,6 @@ SERVICE_ACCOUNT_PATH = "babybeacon-2025-firebase-adminsdk-fbsvc-63d713583a.json"
 cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
-
-import random
 
 @app.route("/get_random_response", methods=["GET"])
 def get_random_response():
@@ -156,10 +155,11 @@ def sign_up_user():
 
         # Create babies as a subcollection
         for baby_name in babies:
-            baby_ref = user_ref.collection("babies").document(baby_name)
+            baby_ref = user_ref.collection("baby").document(baby_name)
             baby_ref.set({
                 "responses": {},  # Empty response map
-                "rides": []       # Empty rides array
+                "rides": [], # Empty rides array
+                "starred_responses": [],  # Empty array for starred responses
             })
 
         # Update device to link the user
