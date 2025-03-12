@@ -36,7 +36,7 @@ const SignupBabyScreen = ({ route }) => {
         phone_number: phone_number.trim(),
         username: username.trim(),
         password: password.trim(),
-        babies: babies.map(baby => baby.trim()),
+        baby: babies.map(baby => baby.trim()),
       });
 
       if (response.data.status === "success") {
