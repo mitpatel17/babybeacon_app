@@ -27,12 +27,72 @@ const SignupUserScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Enter Your Details</Text>
       
-      <TextInput style={styles.input} placeholder="Full Name" value={name} onChangeText={setName} />
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-      <TextInput style={styles.input} placeholder="Phone Number" value={phone_number} onChangeText={setPhoneNumber} keyboardType="phone-pad" />
-      <TextInput style={styles.input} placeholder="Username" value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+      <TextInput 
+        style={styles.input} 
+        placeholder="Full Name" 
+        value={name} 
+        onChangeText={setName} 
+        autoCapitalize="words"
+        textContentType="none"  // Prevents iOS AutoFill
+        importantForAutofill="no"
+      />
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="Email" 
+        value={email} 
+        onChangeText={setEmail} 
+        keyboardType="email-address" 
+        autoCapitalize="none"
+        textContentType="emailAddress"  // Prevents auto-suggestions
+        importantForAutofill="no"
+      />
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="Phone Number" 
+        value={phone_number} 
+        onChangeText={setPhoneNumber} 
+        keyboardType="phone-pad" 
+        textContentType="telephoneNumber" 
+        importantForAutofill="no"
+      />
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="Username" 
+        value={username} 
+        onChangeText={setUsername} 
+        autoCapitalize="none"
+        textContentType="none"  // Disables autofill
+        importantForAutofill="no"
+      />
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="Password" 
+        value={password} 
+        onChangeText={setPassword} 
+        secureTextEntry
+        textContentType="none" 
+        importantForAutofill="no"
+        autoCompleteType="off"
+        autoCorrect={false} // Prevents auto-suggestions
+        spellCheck={false} // Ensures no spell check
+      />
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="Confirm Password" 
+        value={confirmPassword} 
+        onChangeText={setConfirmPassword} 
+        secureTextEntry
+        textContentType="none"
+        importantForAutofill="no"
+        autoCompleteType="off"
+        autoCorrect={false}
+        spellCheck={false}
+      />
 
       <TouchableOpacity style={styles.button} onPress={handleNext}>
         <Text style={styles.buttonText}>Next</Text>

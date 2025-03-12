@@ -13,6 +13,7 @@ const HomeScreen = () => {
   const [responses, setStarredResponses] = useState([]);
   const [allResponses, setAllResponses] = useState([]);
   const [activeResponse, setActiveResponse] = useState("None");
+  const [activeUrl, setActiveResponseUrl] = useState("None");
   const [currentRideId, setCurrentRideId] = useState(null);
   const [scans, setScans] = useState([]);
 
