@@ -16,6 +16,9 @@ const HomeScreen = () => {
   const [activeUrl, setActiveResponseUrl] = useState("None");
   const [currentRideId, setCurrentRideId] = useState(null);
   const [scans, setScans] = useState([]);
+  const [showResponsePopup, setShowResponsePopup] = useState(false);
+  const [triggeredResponse, setTriggeredResponse] = useState("");
+  const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
 
   const handleResponseClick = async (responseKey) => {
     setActiveResponse(responseKey);
@@ -43,6 +46,9 @@ const HomeScreen = () => {
         const url = response.data.url;
         setActiveResponseUrl(url);
         await updateDeviceResponse(currentDeviceId, url);
+
+        // SHOW POPUP
+        setTriggeredResponse(responseKey);
       } else {
         console.error("Failed to fetch response URL:", response.data.message);
       }
@@ -168,17 +174,68 @@ const HomeScreen = () => {
   
           filteredScans.sort((a, b) => parseInt(b.id.replace("scan", "")) - parseInt(a.id.replace("scan", "")));
   
+          let newScans = [];
           setScans((prevScans) => {
-            const newScans = filteredScans.filter((newScan) =>
+            newScans = filteredScans.filter((newScan) =>
               !prevScans.some((existingScan) => existingScan.id === newScan.id)
             );
+  
+            console.log(`🔎 New scans detected:`, newScans); // <==== SEE NEW SCANS HERE
   
             if (newScans.length === 0) return prevScans;
   
             return [...newScans, ...prevScans];
           });
   
-          console.log("📊 Updated scans in state:", filteredScans);
+          // Wait a little to ensure setScans finishes updating
+          setTimeout(() => {
+            if (newScans.length > 0) {
+              newScans.forEach(async (scan) => {
+                if (NEGATIVE_EMOTIONS.includes(scan.emotion)) {
+                  console.log(`🚨 Negative Emotion Detected: ${scan.emotion} in ${scan.id}`);
+                  
+                  let selectedResponse = activeResponse;
+                  
+                  if (activeResponse === "None" && allResponses.length > 0) {
+                    // Pick random response
+                    const randomIndex = Math.floor(Math.random() * allResponses.length);
+                    selectedResponse = allResponses[randomIndex];
+                    console.log(`🎶 Auto-playing response: ${selectedResponse}`);
+              
+                    // Fetch response URL for selected random response
+                    const storedUsername = await AsyncStorage.getItem("username");
+                    const response = await axios.get(`${API_URL}/get_response_url`, {
+                      params: {
+                        username: storedUsername,
+                        scanning_baby: scanningBaby,
+                        response_key: selectedResponse,
+                      },
+                    });
+              
+                    if (response.data.status === "success") {
+                      const url = response.data.url;
+                      setActiveResponse(selectedResponse);
+                      setActiveResponseUrl(url);
+              
+                      // 🔹 Update Firestore with new response URL
+                      await updateDeviceResponse(deviceId, url);
+                    } else {
+                      console.error("Failed to fetch response URL for random:", response.data.message);
+                    }
+                  } else {
+                    console.log(`⏯️ Response "${activeResponse}" already playing, skipping auto-play`);
+                  }
+              
+                  // Show popup with whichever response is now playing
+                  setTriggeredResponse(selectedResponse);
+                  setShowResponsePopup(true);
+                  setTimeout(() => {
+                    setShowResponsePopup(false);
+                  }, 5000);
+                }
+              });                           
+            }
+          }, 100); // short delay
         } else {
           console.error("⚠️ Failed to fetch ride data:", rideResponse.data.message);
         }
@@ -186,7 +243,7 @@ const HomeScreen = () => {
         console.error("❌ Error polling for scans:", error);
       }
     }, 3000);
-  };
+  };  
   
   const stopRidePolling = () => {
     clearInterval(pollingInterval);
@@ -327,6 +384,16 @@ const HomeScreen = () => {
           ))}
         </ScrollView>
       </View>
+      {showResponsePopup && (
+        <TouchableOpacity
+          style={styles.popupBox}
+          activeOpacity={0.8}
+          onPress={() => setShowResponsePopup(false)} // tap to dismiss
+        >
+          <Text style={styles.popupTitle}>Response Triggered!</Text>
+          <Text style={styles.popupMessage}>Auto-playing: {triggeredResponse}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -454,6 +521,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#003366",
+  },
+  popupBox: {
+    position: "absolute",
+    top: "40%",
+    left: "10%",
+    right: "10%",
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#007BFF",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+    elevation: 10, // shadow for Android
+    shadowColor: "#000", // shadow for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#007BFF",
+  },
+  popupMessage: {
+    fontSize: 16,
+    color: "#333",
   },
 });
 
