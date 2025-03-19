@@ -20,6 +20,12 @@ const HomeScreen = () => {
   const [triggeredResponse, setTriggeredResponse] = useState("");
   const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
 
+  const getEmotionColor = (emotion) => {
+    if (NEGATIVE_EMOTIONS.includes(emotion)) return "#FF4C4C"; // 🔴 Red for negative
+    if (emotion === "Happy") return "#4CAF50"; // 🟢 Green for Happy
+    return "#FFD700"; // 🟡 Yellow for Neutral (any others)
+  };
+
   const handleResponseClick = async (responseKey) => {
     setActiveResponse(responseKey);
   
@@ -366,18 +372,24 @@ const HomeScreen = () => {
       </View>
 
       <View style={styles.ghostBox}>
-      <Text style={styles.ghostText}>
-        {!isScanning
-          ? "Showing Last Ride - Waiting to start!"
-          : scans.length === 0
-          ? `Ride: ${currentRideId}... Waiting for scans...`
-          : `Ride: ${currentRideId} - Latest Scans:`}
-      </Text>
+        <Text style={styles.ghostText}>
+          {!isScanning
+            ? "Showing Last Ride - Waiting to start!"
+            : scans.length === 0
+            ? `Ride: ${currentRideId}... Waiting for scans...`
+            : `Ride: ${currentRideId} - Latest Scans:`}
+        </Text>
 
         <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
           {scans.map((scan) => (
-            <View key={scan.id} style={styles.scanNotification}>
-              <Text style={styles.scanText}>
+            <View 
+              key={scan.id} 
+              style={[
+                styles.scanNotification, 
+                { backgroundColor: getEmotionColor(scan.emotion) } // 🔥 Apply color here
+              ]}
+            >
+              <Text style={[styles.scanText, { color: "#fff" }]}>
                 {scan.id}: {scan.emotion} ({scan.accuracy}%)
               </Text>
             </View>
