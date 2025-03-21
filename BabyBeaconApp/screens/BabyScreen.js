@@ -275,10 +275,6 @@ const BabyScreen = () => {
           </View>
         </View>
       </Modal>
-      <View style={styles.ghostBox}>
-        <Text style={styles.ghostTitle}>Baby Insights</Text>
-        <Text style={styles.ghostText}>Insights coming soon...</Text>
-      </View>
     </View>
   );
 };
@@ -415,26 +411,6 @@ const styles = StyleSheet.create({
   closeModalText: {
     fontSize: 18,
     color: "#007BFF",
-  },
-  ghostBox: {
-    width: "90%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 15,
-    backgroundColor: "#f9f9f9",
-    marginTop: 20,
-    alignItems: "center",
-  },
-  ghostTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  ghostText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
   },  
 });
 

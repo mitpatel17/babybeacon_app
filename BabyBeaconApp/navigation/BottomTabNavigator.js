@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from "react-native-vector-icons";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import BabyScreen from "../screens/BabyScreen";
+import InsightsScreen from "../screens/InsightsScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -19,6 +20,8 @@ const BottomTabNavigator = () => {
           } else if (route.name === "Profile") {
             return <Ionicons name="person" size={size} color={color} />;
           } else if (route.name === "Baby") {
+            return <MaterialCommunityIcons name="baby-face-outline" size={size} color={color} />;
+          } else if (route.name === "Insights") {
             return <MaterialCommunityIcons name="chart-box" size={size} color={color} />;
           }
         },
@@ -29,6 +32,7 @@ const BottomTabNavigator = () => {
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Baby" component={BabyScreen} />
+      <Tab.Screen name="Insights" component={InsightsScreen} />
     </Tab.Navigator>
   );
 };

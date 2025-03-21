@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 from google.cloud import firestore
-from google.oauth2 import service_account
 import firebase_admin
 from firebase_admin import credentials, firestore
 import logging
@@ -557,6 +556,30 @@ def get_starred_responses():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/get_baby", methods=["GET"])
+def get_baby():
+    username = request.args.get("username")
+    baby_name = request.args.get("baby_name")
+
+    if not username or not baby_name:
+        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+
+    try:
+        baby_ref = db.collection("users").document(username).collection("baby").document(baby_name)
+        baby_doc = baby_ref.get()
+
+        if not baby_doc.exists:
+            return jsonify({"status": "error", "message": "Baby not found"}), 404
+
+        baby_data = baby_doc.to_dict()
+
+        return jsonify({
+            "status": "success",
+            "data": baby_data
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 ### 6️⃣ SEND YOUTUBE RESPONSE API ###
 @app.route("/send_response", methods=["POST"])
 def send_response():
@@ -573,6 +596,30 @@ def send_response():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/get_ride_insights", methods=["GET"])
+def get_ride_insights():
+    device_id = request.args.get("device_id")
+
+    if not device_id:
+        return jsonify({"status": "error", "message": "Missing device_id"}), 400
+
+    try:
+        # Fetch all rides from device
+        rides_ref = db.collection("devices").document(device_id).collection("rides")
+        rides_docs = rides_ref.stream()
+
+        rides = []
+        for ride_doc in rides_docs:
+            ride_data = ride_doc.to_dict()
+            ride_data["ride_id"] = ride_doc.id
+            rides.append(ride_data)
+
+        return jsonify({
+            "status": "success",
+            "rides": rides,
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
