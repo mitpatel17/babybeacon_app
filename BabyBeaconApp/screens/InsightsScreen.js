@@ -30,6 +30,12 @@ const InsightsScreen = () => {
     evening: 0,
     night: 0,
   });
+  const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
+  const [emotionCounts, setEmotionCounts] = useState({
+    positive: 0,
+    neutral: 0,
+    negative: 0,
+  });
 
   useEffect(() => {
     fetchProfileAndRides();
@@ -93,6 +99,9 @@ const InsightsScreen = () => {
     let minDuration = Number.MAX_SAFE_INTEGER;
     let buckets = { under10: 0, between10and30: 0, between30and60: 0, between60and120: 0, over120: 0 };
     let bucketsTime = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+    let positiveCount = 0;
+    let neutralCount = 0;
+    let negativeCount = 0;
 
     ridesData.forEach((ride) => {
         const start = new Date(ride.start_time);
@@ -123,8 +132,27 @@ const InsightsScreen = () => {
         if (duration > maxDuration) maxDuration = duration;
         if (duration < minDuration) minDuration = duration;
         totalDuration += duration;
+
+        Object.keys(ride).forEach((key) => {
+            if (key.startsWith("scan")) {
+              const scan = ride[key]; // This is the scan object
+              const emotion = scan.emotion;
+              if (NEGATIVE_EMOTIONS.includes(emotion)) {
+                negativeCount++;
+              } else if (emotion === "Neutral") {
+                neutralCount++;
+              } else {
+                positiveCount++;
+              }
+            }
+        });
     });
     
+    setEmotionCounts({
+        positive: positiveCount,
+        neutral: neutralCount,
+        negative: negativeCount,
+    });
     setTimeBuckets(bucketsTime);
     setRideBuckets(buckets);
     setDailyCount(daily);
@@ -206,6 +234,25 @@ const InsightsScreen = () => {
                 color: () => `#000`,
             }}
             accessor={"population"}
+            backgroundColor={"transparent"}
+            paddingLeft={"15"}
+            absolute
+        />
+      </View>
+      <View style={styles.chartBox}>
+        <Text style={styles.statsTitle}>Mood Distribution Signals (All Rides)</Text>
+        <PieChart
+            data={[
+            { name: "Positive", count: emotionCounts.positive, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 14 },
+            { name: "Neutral", count: emotionCounts.neutral, color: "#FFC107", legendFontColor: "#000", legendFontSize: 14 },
+            { name: "Negative", count: emotionCounts.negative, color: "#F44336", legendFontColor: "#000", legendFontSize: 14 },
+            ]}
+            width={Dimensions.get("window").width - 40}
+            height={220}
+            chartConfig={{
+            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor={"count"}
             backgroundColor={"transparent"}
             paddingLeft={"15"}
             absolute
