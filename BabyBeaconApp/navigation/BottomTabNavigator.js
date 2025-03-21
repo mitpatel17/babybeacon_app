@@ -29,10 +29,10 @@ const BottomTabNavigator = () => {
         tabBarInactiveTintColor: "gray",
       })}
     >
-      <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Baby" component={BabyScreen} />
       <Tab.Screen name="Insights" component={InsightsScreen} />
+      <Tab.Screen name="Baby" component={BabyScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };
