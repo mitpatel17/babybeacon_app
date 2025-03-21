@@ -4,10 +4,13 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
 import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
+import { useIsFocused } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 
 const InsightsScreen = () => {
   const [babyName, setBabyName] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dailyCount, setDailyCount] = useState(0);
@@ -17,6 +20,7 @@ const InsightsScreen = () => {
   const [longestRide, setLongestRide] = useState(0);
   const [shortestRide, setShortestRide] = useState(0);
   const [averageRide, setAverageRide] = useState(0);
+  const isFocused = useIsFocused();
   const [rideBuckets, setRideBuckets] = useState({
     under10: 0,
     between10and30: 0,
@@ -42,10 +46,19 @@ const InsightsScreen = () => {
     evening: 0,
     night: 0,
   });
+  const [negativeScanLengthBuckets, setNegativeScanLengthBuckets] = useState({
+    under10: 0,
+    between10and30: 0,
+    between30and60: 0,
+    between60and120: 0,
+    over120: 0,
+  });
 
   useEffect(() => {
-    fetchProfileAndRides();
-  }, []);
+    if (isFocused) {
+      fetchProfileAndRides();
+    }
+  }, [isFocused]);
 
   const fetchProfileAndRides = async () => {
     try {
@@ -113,8 +126,9 @@ const InsightsScreen = () => {
         afternoon: 0,
         evening: 0,
         night: 0,
-      };
-    
+    };
+    let negativeBuckets = { under10: 0, between10and30: 0, between30and60: 0, between60and120: 0, over120: 0 };
+
     ridesData.forEach((ride) => {
         const start = new Date(ride.start_time);
         const end = new Date(ride.end_time);
@@ -127,11 +141,15 @@ const InsightsScreen = () => {
         if (diffDays < 7) weekly++;
         if (start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear()) monthly++;
 
-        if (duration < 10) buckets.under10++;
-        else if (duration < 30) buckets.between10and30++;
-        else if (duration < 60) buckets.between30and60++;
-        else if (duration < 120) buckets.between60and120++;
-        else buckets.over120++;
+        // Categorize ride length
+        let bucketKey = "";
+        if (duration < 10) bucketKey = "under10";
+        else if (duration < 30) bucketKey = "between10and30";
+        else if (duration < 60) bucketKey = "between30and60";
+        else if (duration < 120) bucketKey = "between60and120";
+        else bucketKey = "over120";
+
+        buckets[bucketKey]++;
 
         // Determine time period
         const hour = start.getHours();
@@ -163,6 +181,9 @@ const InsightsScreen = () => {
               if (scan && NEGATIVE_EMOTIONS.includes(scan.emotion)) {
                 negativeEmotionBuckets[timePeriod]++;
               }
+              if (NEGATIVE_EMOTIONS.includes(scan.emotion)) {
+                negativeBuckets[bucketKey]++;
+              }
             }
         });
     });
@@ -172,6 +193,7 @@ const InsightsScreen = () => {
         neutral: neutralCount,
         negative: negativeCount,
     });
+    setNegativeScanLengthBuckets(negativeBuckets);
     setTimeBuckets(bucketsTime);
     setRideBuckets(buckets);
     setDailyCount(daily);
@@ -186,133 +208,169 @@ const InsightsScreen = () => {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <Text style={styles.title}>{babyName ? `${babyName}'s Insights` : "Loading..."}</Text>
+        <Text style={styles.title}>{babyName ? `${babyName}'s Insights` : "Loading..."}</Text>
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={{ marginLeft: 10 }}>
+            <Ionicons name="information-circle-outline" size={24} color="#007BFF" />
+        </TouchableOpacity>
 
-      {/* Ride Count Box */}
-      <View style={styles.statsBox}>
-        <Text style={styles.statsTitle}>Ride Counts</Text>
-        <Text style={styles.statText}>Daily Rides: {dailyCount}</Text>
-        <Text style={styles.statText}>Weekly Rides: {weeklyCount}</Text>
-        <Text style={styles.statText}>Monthly Rides: {monthlyCount}</Text>
-        <Text style={styles.statText}>All Time Rides: {totalCount}</Text>
-      </View>
+        {/* Ride Count Box */}
+        <View style={styles.statsBox}>
+            <Text style={styles.statsTitle}>Ride Counts</Text>
+            <Text style={styles.statText}>Daily Rides: {dailyCount}</Text>
+            <Text style={styles.statText}>Weekly Rides: {weeklyCount}</Text>
+            <Text style={styles.statText}>Monthly Rides: {monthlyCount}</Text>
+            <Text style={styles.statText}>All Time Rides: {totalCount}</Text>
+        </View>
 
-      {/* Ride Length Box */}
-      <View style={styles.statsBox}>
-        <Text style={styles.statsTitle}>Ride Durations</Text>
-        <Text style={styles.statText}>Longest Ride: {longestRide} mins</Text>
-        <Text style={styles.statText}>Shortest Ride: {shortestRide} mins</Text>
-        <Text style={styles.statText}>Average Ride: {averageRide} mins</Text>
-      </View>
+        {/* Ride Length Box */}
+        <View style={styles.statsBox}>
+            <Text style={styles.statsTitle}>Ride Durations</Text>
+            <Text style={styles.statText}>Longest Ride: {longestRide} mins</Text>
+            <Text style={styles.statText}>Shortest Ride: {shortestRide} mins</Text>
+            <Text style={styles.statText}>Average Ride: {averageRide} mins</Text>
+        </View>
 
-      <View style={styles.chartBox}>
-        <Text style={styles.statsTitle}>Ride Duration Distribution</Text>
-        <BarChart
-            data={{
-            labels: ["<10m", "10-30m", "30-60m", "1-2h", "2h+"],
-            datasets: [
-                {
-                data: [
-                    rideBuckets.under10,
-                    rideBuckets.between10and30,
-                    rideBuckets.between30and60,
-                    rideBuckets.between60and120,
-                    rideBuckets.over120,
+        <View style={styles.chartBox}>
+            <Text style={styles.statsTitle}>Ride Duration Distribution</Text>
+            <BarChart
+                data={{
+                labels: ["<10m", "10-30m", "30-60m", "1-2h", "2h+"],
+                datasets: [
+                    {
+                    data: [
+                        rideBuckets.under10,
+                        rideBuckets.between10and30,
+                        rideBuckets.between30and60,
+                        rideBuckets.between60and120,
+                        rideBuckets.over120,
+                    ],
+                    },
                 ],
-                },
-            ],
-            }}
-            width={Dimensions.get("window").width - 40} // Responsive width
-            height={220}
-            chartConfig={{
-            backgroundGradientFrom: "#f9f9f9",
-            backgroundGradientTo: "#f9f9f9",
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            barPercentage: 0.5,
-            }}
-            style={{
-            marginVertical: 8,
-            borderRadius: 16,
-            }}
-        />
-      </View>
-
-      <View style={styles.chartBox}>
-        <Text style={styles.statsTitle}>Ride Times Distribution</Text>
-        <PieChart
-            data={[
-                { name: "Morning", population: timeBuckets.morning, color: "#FFA500", legendFontColor: "#333", legendFontSize: 14 },
-                { name: "Afternoon", population: timeBuckets.afternoon, color: "#00BFFF", legendFontColor: "#333", legendFontSize: 14 },
-                { name: "Evening", population: timeBuckets.evening, color: "#FF69B4", legendFontColor: "#333", legendFontSize: 14 },
-                { name: "Night", population: timeBuckets.night, color: "#9370DB", legendFontColor: "#333", legendFontSize: 14 },
-            ]}
-            width={Dimensions.get("window").width - 40}
-            height={220}
-            chartConfig={{
-                color: () => `#000`,
-            }}
-            accessor={"population"}
-            backgroundColor={"transparent"}
-            paddingLeft={"15"}
-            absolute
-        />
-      </View>
-      <View style={styles.chartBox}>
-        <Text style={styles.statsTitle}>Mood Distribution Signals (All Rides)</Text>
-        <PieChart
-            data={[
-            { name: "Positive", count: emotionCounts.positive, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 14 },
-            { name: "Neutral", count: emotionCounts.neutral, color: "#FFC107", legendFontColor: "#000", legendFontSize: 14 },
-            { name: "Negative", count: emotionCounts.negative, color: "#F44336", legendFontColor: "#000", legendFontSize: 14 },
-            ]}
-            width={Dimensions.get("window").width - 40}
-            height={220}
-            chartConfig={{
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor={"count"}
-            backgroundColor={"transparent"}
-            paddingLeft={"15"}
-            absolute
-        />
-      </View>
-      <View style={styles.chartBox}>
-        <Text style={styles.statsTitle}>Negative Scans by Time of Day</Text>
-        <LineChart
-            data={{
-            labels: ["Morning", "Afternoon", "Evening", "Night"],
-            datasets: [
-                {
-                data: [
-                    negativeEmotionBuckets.morning,
-                    negativeEmotionBuckets.afternoon,
-                    negativeEmotionBuckets.evening,
-                    negativeEmotionBuckets.night,
-                ],
-                },
-            ],
-            }}
-            width={Dimensions.get("window").width - 40}
-            height={220}
-            yAxisLabel=""
-            chartConfig={{
-            backgroundGradientFrom: "#fff",
-            backgroundGradientTo: "#fff",
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
+                }}
+                width={Dimensions.get("window").width - 40} // Responsive width
+                height={220}
+                chartConfig={{
+                backgroundGradientFrom: "#f9f9f9",
+                backgroundGradientTo: "#f9f9f9",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                barPercentage: 0.5,
+                }}
+                style={{
+                marginVertical: 8,
                 borderRadius: 16,
-            },
-            }}
-            bezier
-            style={{
-            marginVertical: 8,
-            borderRadius: 16,
-            }}
-        />
+                }}
+            />
+        </View>
+        <View style={styles.chartBox}>
+            <Text style={styles.statsTitle}>Ride Times Distribution</Text>
+            <PieChart
+                data={[
+                    { name: "Morning", population: timeBuckets.morning, color: "#FFA500", legendFontColor: "#333", legendFontSize: 14 },
+                    { name: "Afternoon", population: timeBuckets.afternoon, color: "#00BFFF", legendFontColor: "#333", legendFontSize: 14 },
+                    { name: "Evening", population: timeBuckets.evening, color: "#FF69B4", legendFontColor: "#333", legendFontSize: 14 },
+                    { name: "Night", population: timeBuckets.night, color: "#9370DB", legendFontColor: "#333", legendFontSize: 14 },
+                ]}
+                width={Dimensions.get("window").width - 40}
+                height={220}
+                chartConfig={{
+                    color: () => `#000`,
+                }}
+                accessor={"population"}
+                backgroundColor={"transparent"}
+                paddingLeft={"15"}
+                absolute
+            />
+        </View>
+        <View style={styles.chartBox}>
+            <Text style={styles.statsTitle}>Mood Distribution Signals (All Rides)</Text>
+            <PieChart
+                data={[
+                { name: "Positive", count: emotionCounts.positive, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 14 },
+                { name: "Neutral", count: emotionCounts.neutral, color: "#FFC107", legendFontColor: "#000", legendFontSize: 14 },
+                { name: "Negative", count: emotionCounts.negative, color: "#F44336", legendFontColor: "#000", legendFontSize: 14 },
+                ]}
+                width={Dimensions.get("window").width - 40}
+                height={220}
+                chartConfig={{
+                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                }}
+                accessor={"count"}
+                backgroundColor={"transparent"}
+                paddingLeft={"15"}
+                absolute
+            />
+        </View>
+        <View style={styles.chartBox}>
+            <Text style={styles.statsTitle}>Negative Scans by Time of Day</Text>
+            <LineChart
+                data={{
+                labels: ["Morning", "Afternoon", "Evening", "Night"],
+                datasets: [
+                    {
+                    data: [
+                        negativeEmotionBuckets.morning,
+                        negativeEmotionBuckets.afternoon,
+                        negativeEmotionBuckets.evening,
+                        negativeEmotionBuckets.night,
+                    ],
+                    },
+                ],
+                }}
+                width={Dimensions.get("window").width - 40}
+                height={220}
+                yAxisLabel=""
+                chartConfig={{
+                backgroundGradientFrom: "#fff",
+                backgroundGradientTo: "#fff",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: {
+                    borderRadius: 16,
+                },
+                }}
+                bezier
+                style={{
+                marginVertical: 8,
+                borderRadius: 16,
+                }}
+            />
+        </View>
+        <View style={styles.chartBox}>
+            <Text style={styles.statsTitle}>Negative Signals vs Ride Length</Text>
+            <LineChart
+                data={{
+                labels: ["<10m", "10-30m", "30-60m", "1-2h", "2h+"],
+                datasets: [
+                    {
+                    data: [
+                        negativeScanLengthBuckets.under10,
+                        negativeScanLengthBuckets.between10and30,
+                        negativeScanLengthBuckets.between30and60,
+                        negativeScanLengthBuckets.between60and120,
+                        negativeScanLengthBuckets.over120,
+                    ],
+                    },
+                ],
+                }}
+                width={Dimensions.get("window").width - 40}
+                height={220}
+                yAxisLabel=""
+                yAxisSuffix=""
+                chartConfig={{
+                backgroundColor: "#f9f9f9",
+                backgroundGradientFrom: "#fff",
+                backgroundGradientTo: "#fff",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: { borderRadius: 16 },
+                propsForDots: { r: "5", strokeWidth: "2", stroke: "#007BFF" },
+                }}
+                style={{ marginVertical: 8, borderRadius: 16 }}
+            />
         </View>
     </View>
   );
