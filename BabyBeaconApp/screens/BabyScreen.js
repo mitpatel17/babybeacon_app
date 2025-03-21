@@ -24,6 +24,8 @@ const BabyScreen = () => {
   const [isAddModalVisible, setAddModalVisible] = useState(false);
   const [newResponseName, setNewResponseName] = useState("");
   const [newResponseUrl, setNewResponseUrl] = useState("");
+  const [babyModalVisible, setBabyModalVisible] = useState(false);
+  const [newBaby, setNewBaby] = useState("");
 
   // Load or reload babies whenever screenKey changes
   useEffect(() => {
@@ -37,6 +39,47 @@ const BabyScreen = () => {
     }
   }, [selectedBaby]);
 
+  const handleAddBaby = async () => {
+    if (!newBaby.trim()) {
+      Alert.alert("Error", "Baby name cannot be empty.");
+      return;
+    }
+  
+    try {
+      const username = await AsyncStorage.getItem("username");
+      const response = await axios.post(`${API_URL}/add_baby`, { username, baby_name: newBaby });
+  
+      if (response.data.status === "success") {
+        setBabies([...babies, newBaby]);
+        setNewBaby("");
+      } else {
+        Alert.alert("Error", response.data.message);
+      }
+    } catch (error) {
+      console.error("Add Baby Error:", error);
+      Alert.alert("Error", "Could not add baby.");
+    }
+  };
+  const handleRemoveBaby = async (babyName) => {
+    if (!babyName || typeof babyName !== "string") {
+      console.error("Invalid baby name:", babyName);
+      return;
+    }
+  
+    try {
+      const username = await AsyncStorage.getItem("username");
+      const response = await axios.post(`${API_URL}/remove_baby`, { username, baby_name: babyName });
+  
+      if (response.data.status === "success") {
+        setBabies(babies.filter(b => b !== babyName));
+      } else {
+        Alert.alert("Error", response.data.message);
+      }
+    } catch (error) {
+      console.error("Remove Baby Error:", error);
+      Alert.alert("Error", "Could not remove baby.");
+    }
+  };
   // 1) Fetch user profile -> get baby list and scanning baby
   const fetchBabies = async () => {
     try {
@@ -208,6 +251,45 @@ const BabyScreen = () => {
           </View>
         </View>
       </Modal>
+      <Modal visible={babyModalVisible} animationType="fade" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update Babies</Text>
+
+            <TextInput 
+              style={styles.input} 
+              placeholder="Enter Baby Name" 
+              value={newBaby} 
+              onChangeText={setNewBaby} 
+            />
+            
+            <TouchableOpacity style={styles.addButton} onPress={handleAddBaby}>
+              <Text style={styles.addButtonText}>Add Baby</Text>
+            </TouchableOpacity>
+
+            {babies.length > 0 ? (
+              babies.map((baby, index) => (
+                <View key={index} style={styles.babyItem}>
+                  <Text style={styles.babyText}>{String(baby)}</Text>  
+                  <TouchableOpacity onPress={() => handleRemoveBaby(baby)}>
+                    <FontAwesome name="trash" size={20} color="red" />
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noResponsesText}>No babies found.</Text>
+            )}
+
+            <TouchableOpacity onPress={() => setBabyModalVisible(false)}>
+              <Text style={styles.closeModalText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <TouchableOpacity style={styles.addButton} onPress={() => setBabyModalVisible(true)}>
+        <Text style={styles.addButtonText}>Update Babies</Text>
+      </TouchableOpacity>
 
       {/* Response List */}
       <View style={styles.responseBox}>
@@ -395,6 +477,21 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
     marginBottom: 10,
+  },
+  babyItem: {
+    flexDirection: "row",  // ✅ Aligns text and icon in a row
+    justifyContent: "space-between", // ✅ Spaces them apart
+    alignItems: "center",  // ✅ Ensures vertical alignment
+    width: "90%",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  babyText: {
+    fontSize: 16,
+    color: "#333",
+    flex: 1,  // ✅ Allows text to take up available space
   },
   addButton: {
     backgroundColor: "#007BFF",

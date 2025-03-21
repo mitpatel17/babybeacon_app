@@ -11,12 +11,9 @@ const ProfileScreen = () => {
   const [editing, setEditing] = useState(false);
   const [updatedData, setUpdatedData] = useState({});
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [babyModalVisible, setBabyModalVisible] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [newBaby, setNewBaby] = useState("");
-  const [babies, setBabies] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -34,15 +31,6 @@ const ProfileScreen = () => {
             const fetchedUser = response.data.data;
             setUser(fetchedUser);
             setUpdatedData(fetchedUser);
-      
-            // ✅ Ensure babies is an array of strings
-            const fetchedBabies = Array.isArray(fetchedUser.babies)
-              ? fetchedUser.babies.map(baby => (typeof baby === "string" ? baby : baby.name))
-              : [];
-      
-            console.log("Processed Babies:", fetchedBabies);  // ✅ Debugging Log
-      
-            setBabies(fetchedBabies);
           } else {
             console.error("Profile Fetch Failed:", response.data.message);
           }
@@ -75,50 +63,6 @@ const ProfileScreen = () => {
       Alert.alert("Error", "Could not update profile.");
     }
   };
-
-  const handleAddBaby = async () => {
-    if (!newBaby.trim()) {
-      Alert.alert("Error", "Baby name cannot be empty.");
-      return;
-    }
-
-    try {
-      const username = await AsyncStorage.getItem("username");
-      const response = await axios.post(`${API_BASE_URL}/add_baby`, { username, baby_name: newBaby });
-
-      if (response.data.status === "success") {
-        setBabies([...babies, newBaby]);
-        setNewBaby("");
-      } else {
-        Alert.alert("Error", response.data.message);
-      }
-    } catch (error) {
-      console.error("Add Baby Error:", error);
-      Alert.alert("Error", "Could not add baby.");
-    }
-  };
-
-  const handleRemoveBaby = async (babyName) => {
-    if (!babyName || typeof babyName !== "string") {
-      console.error("Invalid baby name:", babyName);
-      return;
-    }
-  
-    try {
-      const username = await AsyncStorage.getItem("username");
-      const response = await axios.post(`${API_BASE_URL}/remove_baby`, { username, baby_name: babyName });
-  
-      if (response.data.status === "success") {
-        setBabies(babies.filter(b => b !== babyName));  // ✅ Remove using name directly
-      } else {
-        Alert.alert("Error", response.data.message);
-      }
-    } catch (error) {
-      console.error("Remove Baby Error:", error);
-      Alert.alert("Error", "Could not remove baby.");
-    }
-  };
-  
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
@@ -173,11 +117,6 @@ const ProfileScreen = () => {
           <Text style={styles.buttonText}>{editing ? "Save Changes" : "Edit Profile"}</Text>
         </TouchableOpacity>
 
-        {/* Update Babies Button */}
-        <TouchableOpacity style={styles.greenButton} onPress={() => setBabyModalVisible(true)}>
-          <Text style={styles.buttonText}>Update Babies</Text>
-        </TouchableOpacity>
-
         {/* Change Password Button ✅ Fixes applied here */}
         <TouchableOpacity id="change-password-btn" style={styles.blueButton} onPress={() => setPasswordModalVisible(true)}>
           <Text style={styles.buttonText}>Change Password</Text>
@@ -204,43 +143,6 @@ const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
-
-      {/* Update Babies Modal (with grey background) */}
-      <Modal visible={babyModalVisible} animationType="fade" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Update Babies</Text>
-
-            <TextInput 
-              style={styles.input} 
-              placeholder="Enter Baby Name" 
-              value={newBaby} 
-              onChangeText={setNewBaby} 
-            />
-            
-            <TouchableOpacity style={styles.greenButton} onPress={handleAddBaby}>
-              <Text style={styles.buttonText}>Add Baby</Text>
-            </TouchableOpacity>
-
-            {babies.length > 0 ? (
-              babies.map((baby, index) => (
-                <View key={index} style={styles.babyItem}>
-                  <Text style={styles.babyText}>{String(baby)}</Text>  
-                  <TouchableOpacity onPress={() => handleRemoveBaby(baby)}>
-                    <FontAwesome name="trash" size={20} color="red" />
-                  </TouchableOpacity>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.noBabiesText}>No babies found.</Text>
-            )}
-
-            <TouchableOpacity style={styles.blueButton} onPress={() => setBabyModalVisible(false)}>
-              <Text style={styles.buttonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 };
@@ -251,21 +153,7 @@ const styles = StyleSheet.create({
   profileContainer: { width: "100%", alignItems: "center" },
   label: { fontSize: 16, fontWeight: "bold", marginTop: 10, alignSelf: "flex-start", marginLeft: 20 },
   input: { width: "90%", height: 40, borderColor: "#ccc", borderWidth: 1, marginBottom: 15, padding: 8, borderRadius: 5, backgroundColor: "#f9f9f9" },
-  babyItem: {
-    flexDirection: "row",  // ✅ Aligns text and icon in a row
-    justifyContent: "space-between", // ✅ Spaces them apart
-    alignItems: "center",  // ✅ Ensures vertical alignment
-    width: "90%",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-  },
-  babyText: {
-    fontSize: 16,
-    color: "#333",
-    flex: 1,  // ✅ Allows text to take up available space
-  },
+
   modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
   modalContent: { width: "85%", backgroundColor: "white", padding: 20, borderRadius: 10, alignItems: "center" },
   modalTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 15 },
