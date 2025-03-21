@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, Modal, TouchableOpacity } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
@@ -208,10 +208,12 @@ const InsightsScreen = () => {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-        <Text style={styles.title}>{babyName ? `${babyName}'s Insights` : "Loading..."}</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={{ marginLeft: 10 }}>
-            <Ionicons name="information-circle-outline" size={24} color="#007BFF" />
-        </TouchableOpacity>
+        <View style={styles.titleContainer}>
+            <Text style={styles.title}>{babyName}'s Insights</Text>
+            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.infoIcon}>
+                <Ionicons name="information-circle-outline" size={40} color="#007BFF" />
+            </TouchableOpacity>
+        </View>
 
         {/* Ride Count Box */}
         <View style={styles.statsBox}>
@@ -372,6 +374,43 @@ const InsightsScreen = () => {
                 style={{ marginVertical: 8, borderRadius: 16 }}
             />
         </View>
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modalVisible}
+            onRequestClose={() => setModalVisible(false)}
+            >
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Graph Explanations</Text>
+                
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Ride Counts:</Text> Shows the number of rides taken daily, weekly, monthly, and overall.
+                </Text>
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Ride Durations:</Text> Displays the longest, shortest, and average ride lengths.
+                </Text>
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Ride Duration Distribution:</Text> Bar chart showing how many rides fall within time ranges like under 10 mins, 10-30 mins, etc.
+                </Text>
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Ride Times of Day:</Text> Pie chart showing the percentage of rides taken in the morning, afternoon, evening, and night.
+                </Text>
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Mood Distribution:</Text> Pie chart summarizing how many positive, neutral, or negative moods were detected during rides.
+                </Text>
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Negative Scans by Time of Day:</Text> Line graph showing how many negative emotions were detected during rides, categorized by time period.
+                </Text>
+                <Text style={styles.modalText}>
+                    <Text style={{ fontWeight: "bold" }}>Negative Signals by Ride Length:</Text> Line graph showing how ride length affects the number of negative emotions detected.
+                </Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+                    <Text style={{ color: "white", fontWeight: "bold" }}>Close</Text>
+                </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
     </View>
   );
 
@@ -430,6 +469,51 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     marginBottom: 20,
+  },
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "flex-start",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  closeButton: {
+    marginTop: 15,
+    alignSelf: "center",
+    backgroundColor: "#007BFF",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },  
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center", // Keeps everything centered horizontally
+    marginBottom: 10,
+    gap: 8,
+  },
+  infoIcon: {
+    marginLeft: 8,
   },
 });
 
