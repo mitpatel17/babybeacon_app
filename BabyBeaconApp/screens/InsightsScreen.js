@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
+import { BarChart } from "react-native-chart-kit";
+
 
 const InsightsScreen = () => {
   const [babyName, setBabyName] = useState("");
@@ -15,6 +17,19 @@ const InsightsScreen = () => {
   const [longestRide, setLongestRide] = useState(0);
   const [shortestRide, setShortestRide] = useState(0);
   const [averageRide, setAverageRide] = useState(0);
+  const [rideBuckets, setRideBuckets] = useState({
+    under10: 0,
+    between10and30: 0,
+    between30and60: 0,
+    between60and120: 0,
+    over120: 0,
+  });
+  const [timeBuckets, setTimeBuckets] = useState({
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
+  });
 
   useEffect(() => {
     fetchProfileAndRides();
@@ -76,25 +91,33 @@ const InsightsScreen = () => {
     let totalDuration = 0;
     let maxDuration = 0;
     let minDuration = Number.MAX_SAFE_INTEGER;
+    let buckets = { under10: 0, between10and30: 0, between30and60: 0, between60and120: 0, over120: 0 };
 
     ridesData.forEach((ride) => {
-      const start = new Date(ride.start_time);
-      const end = new Date(ride.end_time);
-      const duration = (end - start) / (1000 * 60); // Duration in minutes
+        const start = new Date(ride.start_time);
+        const end = new Date(ride.end_time);
+        const duration = (end - start) / (1000 * 60); // Duration in minutes
 
-      // Update daily, weekly, monthly counts
-      const diffTime = now - start;
-      const diffDays = diffTime / (1000 * 60 * 60 * 24);
-      if (diffDays < 1) daily++;
-      if (diffDays < 7) weekly++;
-      if (start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear()) monthly++;
+        // Update daily, weekly, monthly counts
+        const diffTime = now - start;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        if (diffDays < 1) daily++;
+        if (diffDays < 7) weekly++;
+        if (start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear()) monthly++;
 
-      // Update longest/shortest durations
-      if (duration > maxDuration) maxDuration = duration;
-      if (duration < minDuration) minDuration = duration;
-      totalDuration += duration;
+        if (duration < 10) buckets.under10++;
+        else if (duration < 30) buckets.between10and30++;
+        else if (duration < 60) buckets.between30and60++;
+        else if (duration < 120) buckets.between60and120++;
+        else buckets.over120++;
+
+        // Update longest/shortest durations
+        if (duration > maxDuration) maxDuration = duration;
+        if (duration < minDuration) minDuration = duration;
+        totalDuration += duration;
     });
-
+    
+    setRideBuckets(buckets);
     setDailyCount(daily);
     setWeeklyCount(weekly);
     setMonthlyCount(monthly);
@@ -123,6 +146,40 @@ const InsightsScreen = () => {
         <Text style={styles.statText}>Longest Ride: {longestRide} mins</Text>
         <Text style={styles.statText}>Shortest Ride: {shortestRide} mins</Text>
         <Text style={styles.statText}>Average Ride: {averageRide} mins</Text>
+      </View>
+
+      <View style={styles.chartBox}>
+        <Text style={styles.statsTitle}>Ride Duration Distribution</Text>
+        <BarChart
+            data={{
+            labels: ["<10m", "10-30m", "30-60m", "1-2h", "2h+"],
+            datasets: [
+                {
+                data: [
+                    rideBuckets.under10,
+                    rideBuckets.between10and30,
+                    rideBuckets.between30and60,
+                    rideBuckets.between60and120,
+                    rideBuckets.over120,
+                ],
+                },
+            ],
+            }}
+            width={Dimensions.get("window").width - 40} // Responsive width
+            height={220}
+            chartConfig={{
+            backgroundGradientFrom: "#f9f9f9",
+            backgroundGradientTo: "#f9f9f9",
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            barPercentage: 0.5,
+            }}
+            style={{
+            marginVertical: 8,
+            borderRadius: 16,
+            }}
+        />
       </View>
     </View>
   );
@@ -176,6 +233,12 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 18,
     marginBottom: 10,
+  },
+  chartBox: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 20,
   },
 });
 
