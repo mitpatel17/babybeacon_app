@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions } from 
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
-import { BarChart } from "react-native-chart-kit";
+import { BarChart, PieChart } from "react-native-chart-kit";
 
 
 const InsightsScreen = () => {
@@ -92,6 +92,7 @@ const InsightsScreen = () => {
     let maxDuration = 0;
     let minDuration = Number.MAX_SAFE_INTEGER;
     let buckets = { under10: 0, between10and30: 0, between30and60: 0, between60and120: 0, over120: 0 };
+    let bucketsTime = { morning: 0, afternoon: 0, evening: 0, night: 0 };
 
     ridesData.forEach((ride) => {
         const start = new Date(ride.start_time);
@@ -111,12 +112,20 @@ const InsightsScreen = () => {
         else if (duration < 120) buckets.between60and120++;
         else buckets.over120++;
 
+        const hour = start.getHours();
+
+        if (hour >= 5 && hour < 12) bucketsTime.morning++;
+        else if (hour >= 12 && hour < 17) bucketsTime.afternoon++;
+        else if (hour >= 17 && hour < 21) bucketsTime.evening++;
+        else bucketsTime.night++;
+
         // Update longest/shortest durations
         if (duration > maxDuration) maxDuration = duration;
         if (duration < minDuration) minDuration = duration;
         totalDuration += duration;
     });
     
+    setTimeBuckets(bucketsTime);
     setRideBuckets(buckets);
     setDailyCount(daily);
     setWeeklyCount(weekly);
@@ -179,6 +188,27 @@ const InsightsScreen = () => {
             marginVertical: 8,
             borderRadius: 16,
             }}
+        />
+      </View>
+
+      <View style={styles.chartBox}>
+        <Text style={styles.statsTitle}>Ride Times Distribution</Text>
+        <PieChart
+            data={[
+                { name: "Morning", population: timeBuckets.morning, color: "#FFA500", legendFontColor: "#333", legendFontSize: 14 },
+                { name: "Afternoon", population: timeBuckets.afternoon, color: "#00BFFF", legendFontColor: "#333", legendFontSize: 14 },
+                { name: "Evening", population: timeBuckets.evening, color: "#FF69B4", legendFontColor: "#333", legendFontSize: 14 },
+                { name: "Night", population: timeBuckets.night, color: "#9370DB", legendFontColor: "#333", legendFontSize: 14 },
+            ]}
+            width={Dimensions.get("window").width - 40}
+            height={220}
+            chartConfig={{
+                color: () => `#000`,
+            }}
+            accessor={"population"}
+            backgroundColor={"transparent"}
+            paddingLeft={"15"}
+            absolute
         />
       </View>
     </View>
