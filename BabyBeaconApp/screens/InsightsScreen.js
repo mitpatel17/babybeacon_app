@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions } from 
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
-import { BarChart, PieChart } from "react-native-chart-kit";
+import { BarChart, PieChart, LineChart } from "react-native-chart-kit";
 
 
 const InsightsScreen = () => {
@@ -35,6 +35,12 @@ const InsightsScreen = () => {
     positive: 0,
     neutral: 0,
     negative: 0,
+  });
+  const [negativeEmotionBuckets, setNegativeEmotionBuckets] = useState({
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
   });
 
   useEffect(() => {
@@ -102,7 +108,13 @@ const InsightsScreen = () => {
     let positiveCount = 0;
     let neutralCount = 0;
     let negativeCount = 0;
-
+    let negativeEmotionBuckets = {
+        morning: 0,
+        afternoon: 0,
+        evening: 0,
+        night: 0,
+      };
+    
     ridesData.forEach((ride) => {
         const start = new Date(ride.start_time);
         const end = new Date(ride.end_time);
@@ -121,12 +133,16 @@ const InsightsScreen = () => {
         else if (duration < 120) buckets.between60and120++;
         else buckets.over120++;
 
+        // Determine time period
         const hour = start.getHours();
+        let timePeriod = "";
+        if (hour >= 5 && hour < 12) timePeriod = "morning";
+        else if (hour >= 12 && hour < 17) timePeriod = "afternoon";
+        else if (hour >= 17 && hour < 21) timePeriod = "evening";
+        else timePeriod = "night";
 
-        if (hour >= 5 && hour < 12) bucketsTime.morning++;
-        else if (hour >= 12 && hour < 17) bucketsTime.afternoon++;
-        else if (hour >= 17 && hour < 21) bucketsTime.evening++;
-        else bucketsTime.night++;
+        // Increment time period bucket count (for number of rides)
+        bucketsTime[timePeriod]++;
 
         // Update longest/shortest durations
         if (duration > maxDuration) maxDuration = duration;
@@ -143,6 +159,9 @@ const InsightsScreen = () => {
                 neutralCount++;
               } else {
                 positiveCount++;
+              }
+              if (scan && NEGATIVE_EMOTIONS.includes(scan.emotion)) {
+                negativeEmotionBuckets[timePeriod]++;
               }
             }
         });
@@ -162,6 +181,7 @@ const InsightsScreen = () => {
     setLongestRide(maxDuration.toFixed(1)); // in minutes
     setShortestRide(minDuration === Number.MAX_SAFE_INTEGER ? 0 : minDuration.toFixed(1));
     setAverageRide(ridesData.length ? (totalDuration / ridesData.length).toFixed(1) : 0);
+    setNegativeEmotionBuckets(negativeEmotionBuckets);
   };
 
   const renderHeader = () => (
@@ -258,6 +278,42 @@ const InsightsScreen = () => {
             absolute
         />
       </View>
+      <View style={styles.chartBox}>
+        <Text style={styles.statsTitle}>Negative Scans by Time of Day</Text>
+        <LineChart
+            data={{
+            labels: ["Morning", "Afternoon", "Evening", "Night"],
+            datasets: [
+                {
+                data: [
+                    negativeEmotionBuckets.morning,
+                    negativeEmotionBuckets.afternoon,
+                    negativeEmotionBuckets.evening,
+                    negativeEmotionBuckets.night,
+                ],
+                },
+            ],
+            }}
+            width={Dimensions.get("window").width - 40}
+            height={220}
+            yAxisLabel=""
+            chartConfig={{
+            backgroundGradientFrom: "#fff",
+            backgroundGradientTo: "#fff",
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: {
+                borderRadius: 16,
+            },
+            }}
+            bezier
+            style={{
+            marginVertical: 8,
+            borderRadius: 16,
+            }}
+        />
+        </View>
     </View>
   );
 
