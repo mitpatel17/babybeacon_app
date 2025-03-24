@@ -2,6 +2,7 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "react-native-vector-icons"; 
 import { MaterialCommunityIcons } from "react-native-vector-icons"; 
+import { COLORS, FONTS } from "../styles/theme";
 
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -25,8 +26,16 @@ const BottomTabNavigator = () => {
             return <MaterialCommunityIcons name="chart-box" size={size} color={color} />;
           }
         },
-        tabBarActiveTintColor: "#007BFF",
-        tabBarInactiveTintColor: "gray",
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.grey,
+        headerShown: true,
+        headerTitleAlign: 'center',
+        headerTitleStyle: {
+          fontWeight: FONTS.weights.bold,
+        },
+        tabBarStyle: {
+          paddingVertical: 5,
+        }
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

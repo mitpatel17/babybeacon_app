@@ -7,12 +7,15 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  FlatList,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
 import { FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "react-native-vector-icons";
+import { MaterialCommunityIcons } from "react-native-vector-icons";
 
 const BabyScreen = () => {
   const [screenKey, setScreenKey] = useState(0); // Forcing a full screen reload
@@ -194,7 +197,7 @@ const BabyScreen = () => {
     }
   };
 
-  // Delete response if it’s not starred
+  // Delete response if it's not starred
   const deleteResponse = async (responseText) => {
     if (starredResponses.includes(responseText)) {
       alert("Cannot delete a starred response. Please unstar first.");
@@ -217,40 +220,83 @@ const BabyScreen = () => {
   };
 
   return (
-    <View style={styles.container} key={screenKey}>
-      <Text style={styles.header}>Baby Selected:</Text>
-
-      <TouchableOpacity
-        style={styles.pickerButton}
-        onPress={() => setPickerVisible(true)}
-      >
-        <Text style={styles.pickerButtonText}>
-          {selectedBaby || "Select a Baby"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Picker Modal */}
-      <Modal visible={isPickerVisible} transparent={true} animationType="slide">
-        <View style={styles.pickerModal}>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedBaby}
-              onValueChange={(itemValue) => handleBabyChange(itemValue)}
-              style={styles.picker}
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Responses</Text>
+      
+      {/* Baby tabs selection - updated styling */}
+      <View style={styles.babyTabsContainer}>
+        {babies.map((baby, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.babyTab,
+              selectedBaby === baby && styles.activeBabyTab
+            ]}
+            onPress={() => handleBabyChange(baby)}
+          >
+            <Text 
+              style={[
+                styles.babyTabText,
+                selectedBaby === baby && styles.activeBabyTabText
+              ]}
             >
-              {babies.map((baby, index) => (
-                <Picker.Item key={index} label={baby} value={baby} />
-              ))}
-            </Picker>
-            <TouchableOpacity
-              style={styles.closePicker}
-              onPress={() => setPickerVisible(false)}
-            >
-              <Text style={styles.closePickerText}>Done</Text>
-            </TouchableOpacity>
-          </View>
+              {baby}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      <View style={styles.responsesContainer}>
+        <Text style={styles.sectionTitle}>Responses for {selectedBaby}:</Text>
+        
+        {/* Responses list - updated styling */}
+        <View style={styles.responsesList}>
+          {responses.length === 0 ? (
+            <Text style={styles.noResponsesText}>No responses added yet.</Text>
+          ) : (
+            responses.map((response, index) => (
+              <View key={index} style={styles.responseItem}>
+                <TouchableOpacity 
+                  onPress={() => toggleStarResponse(response)} 
+                  style={styles.favoriteIcon}
+                >
+                  <Ionicons 
+                    name={starredResponses.includes(response) ? "star" : "star-outline"} 
+                    size={24} 
+                    color={starredResponses.includes(response) ? "#FFD700" : "#888888"} 
+                  />
+                </TouchableOpacity>
+                
+                <Text style={styles.responseText}>{response}</Text>
+                
+                <TouchableOpacity 
+                  onPress={() => deleteResponse(response)} 
+                  disabled={starredResponses.includes(response)}
+                  style={styles.deleteIcon}
+                >
+                  <Ionicons 
+                    name="trash-outline" 
+                    size={24} 
+                    color={starredResponses.includes(response) ? "#888888" : "#FF4C4C"}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </View>
-      </Modal>
+        
+        {/* Add Response button - updated styling */}
+        <TouchableOpacity style={styles.addButton} onPress={() => setAddModalVisible(true)}>
+          <Ionicons name="add" size={20} color="#fff" />
+          <Text style={styles.addButtonText}>Add Response</Text>
+        </TouchableOpacity>
+        
+        {/* Keep Update Babies button with the same functionality */}
+        <TouchableOpacity style={styles.updateButton} onPress={() => setBabyModalVisible(true)}>
+          <Text style={styles.updateButtonText}>Update Babies</Text>
+        </TouchableOpacity>
+      </View>
+
       <Modal visible={babyModalVisible} animationType="fade" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -287,50 +333,6 @@ const BabyScreen = () => {
         </View>
       </Modal>
 
-      <TouchableOpacity style={styles.addButton} onPress={() => setBabyModalVisible(true)}>
-        <Text style={styles.addButtonText}>Update Babies</Text>
-      </TouchableOpacity>
-
-      {/* Response List */}
-      <View style={styles.responseBox}>
-        <View style={styles.responseHeader}>
-          <Text style={styles.responseTitle}>Responses:</Text>
-          <TouchableOpacity onPress={() => setAddModalVisible(true)}>
-            <FontAwesome name="plus-circle" size={24} color="#007BFF" />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView nestedScrollEnabled={true}>
-          {responses.length > 0 ? (
-            responses.map((response, index) => (
-              <View key={index} style={styles.responseRow}>
-                <TouchableOpacity onPress={() => toggleStarResponse(response)}>
-                  <FontAwesome
-                    name={starredResponses.includes(response) ? "star" : "star-o"}
-                    size={24}
-                    color={
-                      starredResponses.includes(response) ? "#FFD700" : "#888"
-                    }
-                  />
-                </TouchableOpacity>
-                <Text style={styles.responseText}>{response}</Text>
-
-                {starredResponses.includes(response) ? (
-                  // Show disabled trash if starred
-                  <FontAwesome name="trash" size={24} color="#ccc" />
-                ) : (
-                  <TouchableOpacity onPress={() => deleteResponse(response)}>
-                    <FontAwesome name="trash" size={24} color="#FF3B30" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noResponsesText}>No responses available.</Text>
-          )}
-        </ScrollView>
-      </View>
-
       {/* Add Response Modal */}
       <Modal visible={isAddModalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
@@ -361,95 +363,109 @@ const BabyScreen = () => {
   );
 };
 
-// -------------- STYLES --------------
+// Updated styles to match the image
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    padding: 20,
+    backgroundColor: "#fff",
   },
-  header: {
+  headerTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 10,
+    textAlign: "center",
+    marginVertical: 15,
+    color: "#333",
   },
-  pickerButton: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    width: "80%",
-    padding: 10,
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
+  babyTabsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  babyTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginRight: 10,
+    backgroundColor: "#f0f0f0",
+  },
+  activeBabyTab: {
+    backgroundColor: "#8CC63F", // Green color from the example
+  },
+  babyTabText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#666",
+  },
+  activeBabyTabText: {
+    color: "#fff",
+  },
+  responsesContainer: {
+    flex: 1,
+    padding: 15,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  responsesList: {
+    backgroundColor: "#f8f8f8",
+    borderRadius: 8,
     marginBottom: 20,
   },
-  pickerButtonText: {
-    fontSize: 18,
+  noResponsesText: {
+    textAlign: "center",
+    color: "#999",
+    paddingVertical: 20,
   },
-  pickerModal: {
-    flex: 1,
-    justifyContent: "center",
+  responseItem: {
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  pickerContainer: {
-    backgroundColor: "#fff",
-    width: "80%",
-    borderRadius: 10,
-    padding: 20,
-    alignItems: "center",
-  },
-  picker: {
-    width: "100%",
-    height: 200,
-  },
-  closePicker: {
-    marginTop: 10,
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 5,
-  },
-  closePickerText: {
-    color: "#fff",
-    fontSize: 18,
-  },
-  responseBox: {
-    width: "90%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
     padding: 15,
-    backgroundColor: "#f9f9f9",
-    marginTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    backgroundColor: "#fff",
   },
-  responseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  responseTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  responseRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderColor: "#ccc",
+  favoriteIcon: {
+    marginRight: 10,
+    width: 30,
   },
   responseText: {
-    fontSize: 18,
     flex: 1,
-    textAlign: "center",
-  },
-  noResponsesText: {
     fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginVertical: 10,
+    color: "#333",
+  },
+  deleteIcon: {
+    width: 30,
+    alignItems: 'center',
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#8CC63F",
+    borderRadius: 5,
+    padding: 15,
+    marginBottom: 10,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  updateButton: {
+    backgroundColor: "#8CC63F",
+    padding: 12,
+    borderRadius: 5,
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 10,
+  },
+  updateButtonText: {
+    color: "#fff",
+    fontSize: 16,
   },
   modalContainer: {
     flex: 1,
@@ -492,18 +508,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     flex: 1,  // ✅ Allows text to take up available space
-  },
-  addButton: {
-    backgroundColor: "#007BFF",
-    padding: 12,
-    borderRadius: 5,
-    alignItems: "center",
-    width: "100%",
-    marginBottom: 10,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 18,
   },
   closeModalText: {
     fontSize: 18,

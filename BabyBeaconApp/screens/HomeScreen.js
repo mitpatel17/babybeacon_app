@@ -6,7 +6,7 @@ import API_URL from "../config";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
   const [scanningBaby, setScanningBaby] = useState(null); // Default: null
@@ -310,92 +310,83 @@ const HomeScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>{scanningBaby ? `Beacon on ${scanningBaby}` : "BabyBeacon"}</Text>
-  
-      <TouchableOpacity
-        style={[styles.button, isScanning ? styles.stopButton : styles.startButton]}
-        onPress={toggleScan}
-      >
-        <Text style={styles.buttonText}>{isScanning ? "Stop" : "Start"}</Text>
-      </TouchableOpacity>
-      
-      <View style={styles.ghostBoxResponses}>
-        <Text style={styles.responseTitle}>
-          {scanningBaby ? `Responses for ${scanningBaby} Playing:` : "Responses"}
-        </Text>
-        <Text style={styles.nowPlayingText}>
-        Now Playing: {activeResponse}
-      </Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Beacon on Billy</Text>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusIndicator, { backgroundColor: isScanning ? '#FF3B30' : '#8CC63F' }]} />
+          <Text style={styles.statusText}>{isScanning ? 'Scanning' : 'Idle'}</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={[
+            styles.scanButton, 
+            { backgroundColor: isScanning ? '#FF3B30' : '#8CC63F' }
+          ]} 
+          onPress={toggleScan}
+        >
+          <Text style={styles.buttonText}>
+            {isScanning ? 'Stop Scan' : 'Start Scan'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Row: None + Random */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", marginVertical: 6 }}>
-          <TouchableOpacity
-            style={[
-              styles.responseButton,
-              activeResponse === "None" ? styles.activeButton : styles.inactiveButton,
-            ]}
-            onPress={() => handleResponseClick("None")}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Responses for Billy</Text>
+        <Text style={styles.nowPlayingText}>Now Playing: {activeResponse}</Text>
+        
+        <View style={styles.responseGrid}>
+          <TouchableOpacity 
+            style={[styles.responseButton, activeResponse === 'None' && styles.activeResponse]} 
+            onPress={() => handleResponseClick('None')}
           >
-            <Text style={styles.responseButtonText}>None</Text>
+            <Text style={styles.responseText}>None</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.responseButton,
-              activeResponse === "Random" ? styles.activeButton : styles.inactiveButton,
-            ]}
+          
+          <TouchableOpacity 
+            style={[styles.responseButton, activeResponse === 'Random' && styles.activeResponse]} 
             onPress={handleRandomClick}
           >
-            <Text style={styles.responseButtonText}>Random</Text>
+            <Text style={styles.responseText}>Random</Text>
+          </TouchableOpacity>
+          
+          {/* Add more response buttons based on your data */}
+          <TouchableOpacity 
+            style={[styles.responseButton, activeResponse === 'Hush Little Baby' && styles.activeResponse]} 
+            onPress={() => handleResponseClick('Hush Little Baby')}
+          >
+            <Text style={styles.responseText}>Hush Little Baby</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.responseButton, activeResponse === 'Twinkle Twinkle' && styles.activeResponse]} 
+            onPress={() => handleResponseClick('Twinkle Twinkle')}
+          >
+            <Text style={styles.responseText}>Twinkle Twinkle</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.responseButton, activeResponse === 'Wheels on Bus' && styles.activeResponse]} 
+            onPress={() => handleResponseClick('Wheels on Bus')}
+          >
+            <Text style={styles.responseText}>Wheels on Bus</Text>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.responseGrid}>
-          {responses.length > 0 ? (
-            responses.map((response, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.responseButton,
-                  activeResponse === response ? styles.activeButton : styles.inactiveButton,
-                ]}
-                onPress={() => handleResponseClick(response)}
-              >
-                <Text style={styles.responseButtonText}>{response}</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.noResponsesText}>No responses available.</Text>
-          )}
-        </View>
       </View>
 
-      <View style={styles.ghostBox}>
-        <Text style={styles.ghostText}>
-          {!isScanning
-            ? "Showing Last Ride - Waiting to start!"
-            : scans.length === 0
-            ? `Ride: ${currentRideId}... Waiting for scans...`
-            : `Ride: ${currentRideId} - Latest Scans:`}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Baby Notifications</Text>
+        <Text style={styles.notificationText}>
+          Start scanning to receive baby state notifications
         </Text>
-
-        <ScrollView style={styles.scanContainer} nestedScrollEnabled={true}>
-          {scans.map((scan) => (
-            <View 
-              key={scan.id} 
-              style={[
-                styles.scanNotification, 
-                { backgroundColor: getEmotionColor(scan.emotion) } // 🔥 Apply color here
-              ]}
-            >
-              <Text style={[styles.scanText, { color: "#fff" }]}>
-                {scan.id}: {scan.emotion} ({scan.accuracy}%)
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
+        
+        {isScanning && scans.map((scan) => (
+          <View key={scan.id} style={styles.notificationItem}>
+            <Text style={styles.notificationItemText}>{scan.id}: {scan.emotion} ({scan.accuracy}%)</Text>
+          </View>
+        ))}
       </View>
+
       {showResponsePopup && (
         <TouchableOpacity
           style={styles.popupBox}
@@ -406,133 +397,90 @@ const HomeScreen = () => {
           <Text style={styles.popupMessage}>Auto-playing: {triggeredResponse}</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingTop: 50,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 10,
-    marginTop: -30,
-  },
-  button: {
+    backgroundColor: '#fff',
     padding: 15,
-    borderRadius: 10,
-    width: 150,
-    alignItems: "center",
   },
-  startButton: {
-    backgroundColor: "#007BFF",
+  section: {
+    marginBottom: 25,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
   },
-  stopButton: {
-    backgroundColor: "#FF3B30",
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 16,
+  },
+  scanButton: {
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 5,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
-  ghostBoxResponses: {
-    flex: 1.2,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: 10,
-    borderWidth: 2,
-    borderColor: "#bbb",
-    borderRadius: 10,
-    backgroundColor: "#f9f9f9",
-    width: "90%",
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  responseTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#666",
+  nowPlayingText: {
+    fontSize: 14,
+    marginBottom: 10,
+    color: '#666',
   },
   responseGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap", // Allows responses to move to new rows
-    justifyContent: "space-between", // Spread across the width
-    width: "100%", // Ensures full width usage
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   responseButton: {
-    flex: 1,              // Let each button fill available space
-    margin: 5,            // Small space between buttons
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: "center",
-    backgroundColor: "#e2ffcc", // default
-    minWidth: "30%",      // Each button takes up 30% of the row
-    maxWidth: "45%",      // Prevents buttons from being too wide
-  },
-  activeButton: {
-    backgroundColor: "#28A745", // green when active
-  },
-  inactiveButton: {
-    backgroundColor: "#e2ffcc",
-  },
-  responseButtonText: {
-    fontSize: 16,
-    color: "#000710",
-  },
-  noResponsesText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginVertical: 10,
-  },
-  ghostBox: {
-    flex: 2,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    marginTop: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    backgroundColor: "#f9f9f9",
-    width: "90%",
-    minHeight: 80,
-    maxHeight: 300,
-    overflow: "hidden",
-  },
-  ghostText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#444",
-    textAlign: "center",
+    width: '48%',
+    padding: 12,
+    borderRadius: 5,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  scanContainer: {
-    flexGrow: 1,
-    maxHeight: 250,
-    width: "100%",
-    paddingBottom: 10,
+  activeResponse: {
+    backgroundColor: '#8CC63F',
   },
-  scanNotification: {
-    width: "100%",
-    backgroundColor: "#e2f0ff",
-    padding: 12,
-    marginVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#007BFF",
-    alignItems: "flex-start",
-    paddingLeft: 15,
-  },
-  scanText: {
+  responseText: {
     fontSize: 14,
-    fontWeight: "bold",
-    color: "#003366",
+    fontWeight: '500',
+  },
+  notificationText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+  },
+  notificationItem: {
+    padding: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 5,
+    marginBottom: 8,
+  },
+  notificationItemText: {
+    fontSize: 14,
   },
   popupBox: {
     position: "absolute",

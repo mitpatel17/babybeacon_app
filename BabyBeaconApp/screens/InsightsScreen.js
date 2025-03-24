@@ -211,7 +211,7 @@ const InsightsScreen = () => {
         <View style={styles.titleContainer}>
             <Text style={styles.title}>{babyName}'s Insights</Text>
             <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.infoIcon}>
-                <Ionicons name="information-circle-outline" size={40} color="#007BFF" />
+                <Ionicons name="information-circle-outline" size={32} color="#4CAF50" />
             </TouchableOpacity>
         </View>
 
@@ -249,13 +249,13 @@ const InsightsScreen = () => {
                     },
                 ],
                 }}
-                width={Dimensions.get("window").width - 40} // Responsive width
+                width={Dimensions.get("window").width - 40}
                 height={220}
                 chartConfig={{
                 backgroundGradientFrom: "#f9f9f9",
                 backgroundGradientTo: "#f9f9f9",
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
+                color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
                 labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                 barPercentage: 0.5,
                 }}
@@ -290,8 +290,8 @@ const InsightsScreen = () => {
             <PieChart
                 data={[
                 { name: "Positive", count: emotionCounts.positive, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 14 },
-                { name: "Neutral", count: emotionCounts.neutral, color: "#FFC107", legendFontColor: "#000", legendFontSize: 14 },
-                { name: "Negative", count: emotionCounts.negative, color: "#F44336", legendFontColor: "#000", legendFontSize: 14 },
+                { name: "Neutral", count: emotionCounts.neutral, color: "#FFD700", legendFontColor: "#000", legendFontSize: 14 },
+                { name: "Negative", count: emotionCounts.negative, color: "#FF4C4C", legendFontColor: "#000", legendFontSize: 14 },
                 ]}
                 width={Dimensions.get("window").width - 40}
                 height={220}
@@ -327,7 +327,7 @@ const InsightsScreen = () => {
                 backgroundGradientFrom: "#fff",
                 backgroundGradientTo: "#fff",
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+                color: (opacity = 1) => `rgba(255, 76, 76, ${opacity})`,
                 labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                 style: {
                     borderRadius: 16,
@@ -366,10 +366,10 @@ const InsightsScreen = () => {
                 backgroundGradientFrom: "#fff",
                 backgroundGradientTo: "#fff",
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
+                color: (opacity = 1) => `rgba(255, 76, 76, ${opacity})`,
                 labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                 style: { borderRadius: 16 },
-                propsForDots: { r: "5", strokeWidth: "2", stroke: "#007BFF" },
+                propsForDots: { r: "5", strokeWidth: "2", stroke: "#FF4C4C" },
                 }}
                 style={{ marginVertical: 8, borderRadius: 16 }}
             />
@@ -416,7 +416,7 @@ const InsightsScreen = () => {
 
   return loading ? (
     <View style={styles.loaderContainer}>
-      <ActivityIndicator size="large" color="#007BFF" />
+      <ActivityIndicator size="large" color="#4CAF50" />
     </View>
   ) : (
     <FlatList
@@ -440,16 +440,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
   },
   statsBox: {
     width: "90%",
     padding: 20,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#4CAF50",
     borderRadius: 10,
     backgroundColor: "#f9f9f9",
     alignItems: "center",
@@ -500,20 +505,14 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: 15,
     alignSelf: "center",
-    backgroundColor: "#007BFF",
+    backgroundColor: "#4CAF50",
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 5,
   },  
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center", // Keeps everything centered horizontally
-    marginBottom: 10,
-    gap: 8,
-  },
   infoIcon: {
-    marginLeft: 8,
+    marginLeft: 10,
+    alignSelf: "center",
   },
 });
 

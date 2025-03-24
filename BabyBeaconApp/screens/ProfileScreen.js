@@ -4,6 +4,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_BASE_URL from "../config";
 import { FontAwesome } from "@expo/vector-icons"; // Import for icons
+import { useNavigation } from '@react-navigation/native';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHARED_STYLES } from "../styles/theme";
 
 const ProfileScreen = () => {
   const [user, setUser] = useState(null);
@@ -14,6 +16,9 @@ const ProfileScreen = () => {
   const [newPassword, setNewPassword] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -55,6 +60,10 @@ const ProfileScreen = () => {
         Alert.alert("Success", "Profile updated successfully.");
         setUser(updatedData);
         setEditing(false);
+        setIsSaved(true);
+        setTimeout(() => {
+          setIsSaved(false);
+        }, 2000);
       } else {
         Alert.alert("Error", response.data.message);
       }
@@ -95,36 +104,95 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      // Clear all stored user data
+      await AsyncStorage.removeItem('username');
+      // Add any other stored items that need to be cleared
+      
+      // Navigate to Login screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
+  const handleEditProfile = () => {
+    if (!editing) {
+      setEditing(true);
+      setIsSaved(false);
+    } else {
+      handleUpdateProfile();
+      setEditing(false);
+      setIsSaved(true);
+      setTimeout(() => {
+        setIsSaved(false);
+      }, 2000);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>View/Edit Profile</Text>
 
       <View style={styles.profileContainer}>
-        <Text style={styles.label}>Device ID:</Text>
-        <TextInput style={styles.input} value={updatedData.device_id || ""} editable={editing} onChangeText={(text) => setUpdatedData({ ...updatedData, device_id: text })} />
+        <Text style={styles.inputLabel}>Device ID:</Text>
+        <TextInput
+          style={styles.input}
+          value={updatedData.device_id || ""}
+          editable={editing}
+          onChangeText={(text) => setUpdatedData({ ...updatedData, device_id: text })}
+        />
 
-        <Text style={styles.label}>Name:</Text>
-        <TextInput style={styles.input} value={updatedData.name || ""} editable={editing} onChangeText={(text) => setUpdatedData({ ...updatedData, name: text })} />
+        <Text style={styles.inputLabel}>Name:</Text>
+        <TextInput
+          style={styles.input}
+          value={updatedData.name || ""}
+          editable={editing}
+          onChangeText={(text) => setUpdatedData({ ...updatedData, name: text })}
+        />
 
-        <Text style={styles.label}>Email:</Text>
-        <TextInput style={styles.input} value={updatedData.email || ""} editable={editing} onChangeText={(text) => setUpdatedData({ ...updatedData, email: text })} />
+        <Text style={styles.inputLabel}>Email:</Text>
+        <TextInput
+          style={styles.input}
+          value={updatedData.email || ""}
+          editable={editing}
+          onChangeText={(text) => setUpdatedData({ ...updatedData, email: text })}
+        />
 
-        <Text style={styles.label}>Phone Number:</Text>
-        <TextInput style={styles.input} value={updatedData.phone_number || ""} editable={editing} onChangeText={(text) => setUpdatedData({ ...updatedData, phone_number: text })} />
+        <Text style={styles.inputLabel}>Phone Number:</Text>
+        <TextInput
+          style={styles.input}
+          value={updatedData.phone_number || ""}
+          editable={editing}
+          onChangeText={(text) => setUpdatedData({ ...updatedData, phone_number: text })}
+        />
 
-        {/* Edit Profile Button */}
-        <TouchableOpacity style={editing ? styles.saveButton : styles.editButton} onPress={() => (editing ? handleUpdateProfile() : setEditing(true))}>
-          <Text style={styles.buttonText}>{editing ? "Save Changes" : "Edit Profile"}</Text>
+        <TouchableOpacity 
+          style={[
+            styles.button, 
+            editing ? styles.primaryButtonDark : (isSaved ? styles.primaryButtonDark : styles.primaryButton)
+          ]} 
+          onPress={handleEditProfile}
+        >
+          <Text style={styles.buttonText}>
+            {editing ? "Save Changes" : (isSaved ? "Saved Changes" : "Edit Profile")}
+          </Text>
         </TouchableOpacity>
 
-        {/* Change Password Button ✅ Fixes applied here */}
-        <TouchableOpacity id="change-password-btn" style={styles.blueButton} onPress={() => setPasswordModalVisible(true)}>
+        <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setPasswordModalVisible(true)}>
           <Text style={styles.buttonText}>Change Password</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleLogout}>
+          <Text style={styles.buttonText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Change Password Modal ✅ */}
-      <Modal id="change-password-modal" visible={passwordModalVisible} animationType="slide" transparent>
+      <Modal visible={passwordModalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Change Password</Text>
@@ -133,11 +201,11 @@ const ProfileScreen = () => {
             <TextInput style={styles.input} placeholder="New Password" secureTextEntry value={newPassword} onChangeText={setNewPassword} />
             <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
 
-            <TouchableOpacity style={styles.greenButton} onPress={handleChangePassword}>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleChangePassword}>
               <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.blueButton} onPress={() => setPasswordModalVisible(false)}>
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => setPasswordModalVisible(false)}>
               <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -148,22 +216,75 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 20, backgroundColor: "#fff", alignItems: "center" },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 20 },
-  profileContainer: { width: "100%", alignItems: "center" },
-  label: { fontSize: 16, fontWeight: "bold", marginTop: 10, alignSelf: "flex-start", marginLeft: 20 },
-  input: { width: "90%", height: 40, borderColor: "#ccc", borderWidth: 1, marginBottom: 15, padding: 8, borderRadius: 5, backgroundColor: "#f9f9f9" },
-
-  modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
-  modalContent: { width: "85%", backgroundColor: "white", padding: 20, borderRadius: 10, alignItems: "center" },
-  modalTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 15 },
+  container: { 
+    flexGrow: 1, 
+    padding: SPACING.xl, 
+    backgroundColor: COLORS.background, 
+    alignItems: "center" 
+  },
+  title: { 
+    fontSize: FONTS.sizes.xxlarge, 
+    fontWeight: FONTS.weights.bold, 
+    marginBottom: SPACING.l
+  },
+  profileContainer: { 
+    width: "100%", 
+    alignItems: "center" 
+  },
+  inputLabel: {
+    fontSize: FONTS.sizes.medium,
+    fontWeight: FONTS.weights.bold,
+    marginBottom: SPACING.xs,
+    alignSelf: 'flex-start',
+    paddingLeft: SPACING.xs,
+  },
+  input: {
+    ...SHARED_STYLES.input
+  },
+  modalContainer: { 
+    ...SHARED_STYLES.modalContainer
+  },
+  modalContent: { 
+    ...SHARED_STYLES.modalContent
+  },
+  modalTitle: { 
+    ...SHARED_STYLES.modalTitle
+  },
   
-  editButton: { backgroundColor: "#FFA500", padding: 12, borderRadius: 5, width: "90%", alignItems: "center", marginTop: 10 },
-  saveButton: { backgroundColor: "#28A745", padding: 12, borderRadius: 5, width: "90%", alignItems: "center", marginTop: 10 },
-  blueButton: { backgroundColor: "#007BFF", padding: 12, borderRadius: 5, width: "90%", alignItems: "center", marginTop: 10 },
-  greenButton: { backgroundColor: "#28A745", padding: 12, borderRadius: 5, width: "90%", alignItems: "center", marginTop: 10 },
+  button: {
+    height: 50,
+    borderRadius: BORDER_RADIUS.s,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: SPACING.xs,
+    width: '100%',
+  },
+  
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+  },
+  
+  primaryButtonDark: {
+    backgroundColor: COLORS.primaryDark,
+  },
+  
+  secondaryButton: {
+    backgroundColor: COLORS.secondary,
+  },
+  
+  dangerButton: {
+    backgroundColor: COLORS.danger,
+  },
+  
+  buttonText: {
+    ...SHARED_STYLES.buttonText
+  },
 
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  formContainer: {
+    width: '90%',
+    alignSelf: 'center',
+    padding: SPACING.l,
+  },
 });
 
 export default ProfileScreen;

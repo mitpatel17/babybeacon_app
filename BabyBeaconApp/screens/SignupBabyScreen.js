@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context"; 
 import axios from "axios";
 import API_BASE_URL from "../config"; // Ensure this is correctly set
+import { COLORS, FONTS, SPACING, SHARED_STYLES } from "../styles/theme";
 
 const SignupBabyScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -54,7 +55,7 @@ const SignupBabyScreen = ({ route }) => {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Add Babies</Text>
+        <Text style={styles.title}>Enter Baby Details</Text>
         
         {babies.map((baby, index) => (
           <TextInput
@@ -70,12 +71,12 @@ const SignupBabyScreen = ({ route }) => {
           <Text style={styles.buttonText}>+ Add Another Baby</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSignup}>
-          <Text style={styles.buttonText}>Complete Sign Up</Text>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSignup}>
+          <Text style={styles.buttonText}>Complete Signup</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>Back</Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.buttonText}>Back</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -88,23 +89,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   container: {
-    flexGrow: 1,
-    paddingTop: 50, // Moves content down to avoid the notch
-    paddingHorizontal: 20,
+    ...SHARED_STYLES.container,
     alignItems: "center",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
+    ...SHARED_STYLES.title
   },
   input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 15,
+    ...SHARED_STYLES.input
   },
   addButton: {
     backgroundColor: "#4CAF50",
@@ -114,25 +106,15 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 10,
   },
-  submitButton: {
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    width: "100%",
-    marginBottom: 10,
+  primaryButton: {
+    ...SHARED_STYLES.primaryButton
   },
-  backButton: {
-    marginTop: 10,
+  secondaryButton: {
+    ...SHARED_STYLES.secondaryButton
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-  backText: {
-    color: "#007BFF",
-    fontSize: 16,
-  },
+    ...SHARED_STYLES.buttonText
+  }
 });
 
 export default SignupBabyScreen;
