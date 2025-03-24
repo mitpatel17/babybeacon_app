@@ -3,14 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert 
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context"; 
 import axios from "axios";
-import API_BASE_URL from "../config"; // Ensure this is correctly set
+import API_BASE_URL from "../config";
 import { COLORS, FONTS, SPACING, SHARED_STYLES } from "../styles/theme";
 
 const SignupBabyScreen = ({ route }) => {
   const navigation = useNavigation();
-  const [babies, setBabies] = useState([""]); // Start with one baby input
+  const [babies, setBabies] = useState([""]);
 
-  // Retrieve user details from previous screens
   const { device_id, name, email, phone_number, username, password } = route.params;
 
   const addBaby = () => {
@@ -99,7 +98,7 @@ const styles = StyleSheet.create({
     ...SHARED_STYLES.input
   },
   addButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: COLORS.success,
     padding: 10,
     borderRadius: 8,
     alignItems: "center",

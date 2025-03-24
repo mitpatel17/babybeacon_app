@@ -1,23 +1,16 @@
-// Central theme file for BabyBeacon app
-
-// Color palette
 export const COLORS = {
-  // Primary colors
-  primary: '#8CC63F',        // Main brand green
-  primaryDark: '#72A230',    // Darker version for pressed states
-  primaryLight: '#AEDB70',   // Lighter version for highlights
+  primary: '#8CC63F',
+  primaryDark: '#72A230',
+  primaryLight: '#AEDB70',
   
-  // Secondary colors
-  secondary: '#4A90E2',      // Secondary blue color
-  secondaryDark: '#3B73B4',  // Darker blue for pressed states
+  secondary: '#4A90E2',
+  secondaryDark: '#3B73B4',
   
-  // Functional colors
   success: '#4CAF50',
   danger: '#FF4747',
   warning: '#FFC107',
   info: '#2196F3',
   
-  // Neutral colors
   white: '#FFFFFF',
   offWhite: '#F5F5F5',
   lightGrey: '#E0E0E0',
@@ -25,13 +18,11 @@ export const COLORS = {
   darkGrey: '#616161',
   black: '#212121',
   
-  // Background colors
   background: '#FFFFFF',
   cardBackground: '#FFFFFF',
   modalBackground: 'rgba(0, 0, 0, 0.5)'
 };
 
-// Typography
 export const FONTS = {
   sizes: {
     xsmall: 12,
@@ -49,7 +40,6 @@ export const FONTS = {
   }
 };
 
-// Spacing
 export const SPACING = {
   xs: 5,
   s: 8,
@@ -59,7 +49,6 @@ export const SPACING = {
   xxl: 30,
 };
 
-// Border radius
 export const BORDER_RADIUS = {
   xs: 4,
   s: 8,
@@ -68,16 +57,13 @@ export const BORDER_RADIUS = {
   round: 50,
 };
 
-// Shared component styles
 export const SHARED_STYLES = {
-  // Common container styles
   container: {
     flex: 1,
     padding: SPACING.xl,
     backgroundColor: COLORS.background,
   },
   
-  // Form input styles
   input: {
     height: 50,
     width: '100%',
@@ -90,7 +76,6 @@ export const SHARED_STYLES = {
     fontSize: FONTS.sizes.medium,
   },
   
-  // Primary button
   primaryButton: {
     height: 50,
     width: '100%',
@@ -101,7 +86,6 @@ export const SHARED_STYLES = {
     marginVertical: SPACING.s,
   },
   
-  // Secondary button
   secondaryButton: {
     height: 50,
     width: '100%',
@@ -112,7 +96,6 @@ export const SHARED_STYLES = {
     marginVertical: SPACING.s,
   },
   
-  // Danger button (for logout, delete, etc.)
   dangerButton: {
     height: 50,
     width: '100%',
@@ -123,21 +106,18 @@ export const SHARED_STYLES = {
     marginVertical: SPACING.s,
   },
   
-  // Text for buttons
   buttonText: {
     color: COLORS.white,
     fontSize: FONTS.sizes.medium,
     fontWeight: FONTS.weights.bold,
   },
   
-  // Text for links
   linkText: {
     color: COLORS.secondary,
     fontSize: FONTS.sizes.small,
     marginVertical: SPACING.m,
   },
   
-  // Title text
   title: {
     fontSize: FONTS.sizes.xxlarge,
     fontWeight: FONTS.weights.bold,
@@ -145,14 +125,12 @@ export const SHARED_STYLES = {
     textAlign: 'center',
   },
   
-  // Subtitle text
   subtitle: {
     fontSize: FONTS.sizes.large,
     marginBottom: SPACING.xl,
     textAlign: 'center',
   },
   
-  // Modal styles
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -174,13 +152,11 @@ export const SHARED_STYLES = {
     marginBottom: SPACING.l,
   },
   
-  // Form container
   formContainer: {
     width: '100%',
     alignSelf: 'center',
   },
   
-  // Input label
   inputLabel: {
     fontSize: FONTS.sizes.medium,
     fontWeight: FONTS.weights.bold,

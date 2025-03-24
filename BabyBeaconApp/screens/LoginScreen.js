@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import axios from "axios";
-import API_BASE_URL from "../config"; // Import API URL
+import API_BASE_URL from "../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, FONTS, SPACING, SHARED_STYLES } from "../styles/theme";
 
@@ -14,7 +14,7 @@ const LoginScreen = ({ navigation }) => {
       const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
       if (response.data.status === "success") {
         await AsyncStorage.setItem("username", username);
-        navigation.replace("HomeTabs"); // ✅ Ensure `HomeTabs` is registered in `App.js`
+        navigation.replace("HomeTabs");
       } else {
         Alert.alert("Login Failed", response.data.message);
       }

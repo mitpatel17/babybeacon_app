@@ -9,8 +9,8 @@ import { useCallback } from "react";
 const HomeScreen = ({ navigation }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
-  const [scanningBaby, setScanningBaby] = useState(null); // Default: null
-  const [responses, setStarredResponses] = useState([]);
+  const [scanningBaby, setScanningBaby] = useState(null);
+  const [starredResponses, setStarredResponses] = useState([]);
   const [allResponses, setAllResponses] = useState([]);
   const [activeResponse, setActiveResponse] = useState("None");
   const [activeUrl, setActiveResponseUrl] = useState("None");
@@ -21,9 +21,9 @@ const HomeScreen = ({ navigation }) => {
   const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
 
   const getEmotionColor = (emotion) => {
-    if (NEGATIVE_EMOTIONS.includes(emotion)) return "#FF4C4C"; // 🔴 Red for negative
-    if (emotion === "Happy") return "#4CAF50"; // 🟢 Green for Happy
-    return "#FFD700"; // 🟡 Yellow for Neutral (any others)
+    if (NEGATIVE_EMOTIONS.includes(emotion)) return "#FF4C4C";
+    if (emotion === "Happy") return "#4CAF50";
+    return "#FFD700";
   };
 
   const handleResponseClick = async (responseKey) => {
@@ -34,7 +34,7 @@ const HomeScreen = ({ navigation }) => {
     const storedUsername = await AsyncStorage.getItem("username");
   
     if (responseKey === "None") {
-      setActiveResponseUrl(""); // Ensure empty string
+      setActiveResponseUrl("");
       await updateDeviceResponse(currentDeviceId, "");
       return;
     }
@@ -44,7 +44,7 @@ const HomeScreen = ({ navigation }) => {
         params: {
           username: storedUsername,
           scanning_baby: currentScanningBaby,
-          response_key: responseKey,  // Pass the selected response key
+          response_key: responseKey,
         },
       });
   
@@ -53,8 +53,12 @@ const HomeScreen = ({ navigation }) => {
         setActiveResponseUrl(url);
         await updateDeviceResponse(currentDeviceId, url);
 
-        // SHOW POPUP
         setTriggeredResponse(responseKey);
+        setShowResponsePopup(true);
+      
+        setTimeout(() => {
+          setShowResponsePopup(false);
+        }, 5000);
       } else {
         console.error("Failed to fetch response URL:", response.data.message);
       }
@@ -69,24 +73,19 @@ const HomeScreen = ({ navigation }) => {
       return;
     }
   
-    // 🎲 Pick a random response from all available response keys
     const randomIndex = Math.floor(Math.random() * allResponses.length);
     const randomResponse = allResponses[randomIndex];
   
-    console.log(`🎲 Selected Random Response: ${randomResponse}`);
-  
-    setActiveResponse("Random"); // Highlight the Random button
-    handleResponseClick(randomResponse); // Play the selected response
+    setActiveResponse("Random");
+    handleResponseClick(randomResponse);
   };  
 
-  // 🔹 Function to Update Firestore Device Response
   const updateDeviceResponse = async (deviceId, responseUrl) => {
     try {
       await axios.post(`${API_URL}/update_device_response`, {
         device_id: deviceId,
         response: responseUrl,
       });
-      console.log(`✅ Updated Firestore: ${deviceId} -> ${responseUrl || "None"}`);
     } catch (error) {
       console.error("Error updating device response:", error);
     }
@@ -109,7 +108,6 @@ const HomeScreen = ({ navigation }) => {
         setIsScanning(!isScanning);
   
         if (!isScanning) {
-          // ✅ Only clear scans when starting a new session
           setScans([]);  
           startRidePolling(storedUsername);
         }
@@ -123,7 +121,6 @@ const HomeScreen = ({ navigation }) => {
 
   const startRidePolling = async (username) => {
     try {
-      // Fetch last_ride_Id from user profile
       const profileResponse = await axios.get(`${API_URL}/get_profile`, {
         params: { username },
       });
@@ -132,7 +129,6 @@ const HomeScreen = ({ navigation }) => {
         let lastRideId = parseInt(profileResponse.data.data.last_ride_Id || "0") + 1;
         setCurrentRideId(`ride_${lastRideId}`);
 
-        // Start polling every 3 seconds
         pollForScans(lastRideId);
       } else {
         console.error("Failed to fetch last ride ID:", profileResponse.data.message);
@@ -145,8 +141,6 @@ const HomeScreen = ({ navigation }) => {
   let pollingInterval; 
 
   const pollForScans = async (rideId) => {
-    console.log("🚀 Starting scan polling for Ride ID:", rideId);
-  
     pollingInterval = setInterval(async () => {
       try {
         const statusResponse = await axios.get(`${API_URL}/get_device_status`, {
@@ -154,12 +148,9 @@ const HomeScreen = ({ navigation }) => {
         });
   
         if (statusResponse.data.status === "success") {
-          console.log("📡 Device status:", statusResponse.data.device_status);
-  
           if (statusResponse.data.device_status === "idle") {
             clearInterval(pollingInterval);
             setIsScanning(false);
-            console.log("🛑 Stopping polling - Device is idle.");
             return;
           }
         }
@@ -169,8 +160,6 @@ const HomeScreen = ({ navigation }) => {
         });
   
         if (rideResponse.data.status === "success") {
-          console.log("✅ Ride scan data:", rideResponse.data);
-  
           const scanEntries = Object.entries(rideResponse.data.scans || {}).map(([key, value]) => ({
             id: key,
             ...value,
@@ -186,29 +175,21 @@ const HomeScreen = ({ navigation }) => {
               !prevScans.some((existingScan) => existingScan.id === newScan.id)
             );
   
-            console.log(`🔎 New scans detected:`, newScans); // <==== SEE NEW SCANS HERE
-  
             if (newScans.length === 0) return prevScans;
   
             return [...newScans, ...prevScans];
           });
   
-          // Wait a little to ensure setScans finishes updating
           setTimeout(() => {
             if (newScans.length > 0) {
               newScans.forEach(async (scan) => {
                 if (NEGATIVE_EMOTIONS.includes(scan.emotion)) {
-                  console.log(`🚨 Negative Emotion Detected: ${scan.emotion} in ${scan.id}`);
-                  
                   let selectedResponse = activeResponse;
                   
                   if (activeResponse === "None" && allResponses.length > 0) {
-                    // Pick random response
                     const randomIndex = Math.floor(Math.random() * allResponses.length);
                     selectedResponse = allResponses[randomIndex];
-                    console.log(`🎶 Auto-playing response: ${selectedResponse}`);
               
-                    // Fetch response URL for selected random response
                     const storedUsername = await AsyncStorage.getItem("username");
                     const response = await axios.get(`${API_URL}/get_response_url`, {
                       params: {
@@ -223,16 +204,12 @@ const HomeScreen = ({ navigation }) => {
                       setActiveResponse(selectedResponse);
                       setActiveResponseUrl(url);
               
-                      // 🔹 Update Firestore with new response URL
                       await updateDeviceResponse(deviceId, url);
                     } else {
                       console.error("Failed to fetch response URL for random:", response.data.message);
                     }
-                  } else {
-                    console.log(`⏯️ Response "${activeResponse}" already playing, skipping auto-play`);
                   }
               
-                  // Show popup with whichever response is now playing
                   setTriggeredResponse(selectedResponse);
                   setShowResponsePopup(true);
                   setTimeout(() => {
@@ -241,12 +218,12 @@ const HomeScreen = ({ navigation }) => {
                 }
               });                           
             }
-          }, 100); // short delay
+          }, 100);
         } else {
-          console.error("⚠️ Failed to fetch ride data:", rideResponse.data.message);
+          console.error("Failed to fetch ride data:", rideResponse.data.message);
         }
       } catch (error) {
-        console.error("❌ Error polling for scans:", error);
+        console.error("Error polling for scans:", error);
       }
     }, 3000);
   };  
@@ -262,13 +239,8 @@ const HomeScreen = ({ navigation }) => {
       });
   
       if (response.data.status === "success") {
-        console.log("Fetched Data:", response.data.responses); // Debugging line
-  
-        // ✅ Directly store the response array (not Object.keys)
         setAllResponses(response.data.responses || []);
         setStarredResponses(response.data.starred_responses || []);
-  
-        console.log("Stored Responses:", response.data.responses); // Debugging line
       } else {
         console.error("Failed to fetch responses:", response.data.message);
       }
@@ -294,9 +266,8 @@ const HomeScreen = ({ navigation }) => {
           const userData = response.data.data;
           if (userData.device_id) {
             setDeviceId(userData.device_id);
-            console.log(`✅ Device ID set: ${userData.device_id}`);
           } else {
-            console.error("🚨 Device ID not found in user profile.");
+            console.error("Device ID not found in user profile.");
           }
           if (userData.scanning_baby) {
             setScanningBaby(userData.scanning_baby);
@@ -312,7 +283,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Beacon on Billy</Text>
+        <Text style={styles.sectionTitle}>Beacon on {scanningBaby || 'Baby'}</Text>
         <View style={styles.statusContainer}>
           <View style={[styles.statusIndicator, { backgroundColor: isScanning ? '#FF3B30' : '#8CC63F' }]} />
           <Text style={styles.statusText}>{isScanning ? 'Scanning' : 'Idle'}</Text>
@@ -332,7 +303,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Responses for Billy</Text>
+        <Text style={styles.sectionTitle}>Responses for {scanningBaby || 'Baby'}</Text>
         <Text style={styles.nowPlayingText}>Now Playing: {activeResponse}</Text>
         
         <View style={styles.responseGrid}>
@@ -350,27 +321,15 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.responseText}>Random</Text>
           </TouchableOpacity>
           
-          {/* Add more response buttons based on your data */}
-          <TouchableOpacity 
-            style={[styles.responseButton, activeResponse === 'Hush Little Baby' && styles.activeResponse]} 
-            onPress={() => handleResponseClick('Hush Little Baby')}
-          >
-            <Text style={styles.responseText}>Hush Little Baby</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.responseButton, activeResponse === 'Twinkle Twinkle' && styles.activeResponse]} 
-            onPress={() => handleResponseClick('Twinkle Twinkle')}
-          >
-            <Text style={styles.responseText}>Twinkle Twinkle</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.responseButton, activeResponse === 'Wheels on Bus' && styles.activeResponse]} 
-            onPress={() => handleResponseClick('Wheels on Bus')}
-          >
-            <Text style={styles.responseText}>Wheels on Bus</Text>
-          </TouchableOpacity>
+          {starredResponses.map((response) => (
+            <TouchableOpacity 
+              key={response}
+              style={[styles.responseButton, activeResponse === response && styles.activeResponse]} 
+              onPress={() => handleResponseClick(response)}
+            >
+              <Text style={styles.responseText}>{response}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -391,7 +350,7 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity
           style={styles.popupBox}
           activeOpacity={0.8}
-          onPress={() => setShowResponsePopup(false)} // tap to dismiss
+          onPress={() => setShowResponsePopup(false)}
         >
           <Text style={styles.popupTitle}>Response Triggered!</Text>
           <Text style={styles.popupMessage}>Auto-playing: {triggeredResponse}</Text>
@@ -493,8 +452,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
-    elevation: 10, // shadow for Android
-    shadowColor: "#000", // shadow for iOS
+    elevation: 10,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,

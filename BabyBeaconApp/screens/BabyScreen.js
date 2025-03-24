@@ -8,6 +8,7 @@ import {
   Modal,
   TextInput,
   FlatList,
+  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
@@ -16,9 +17,10 @@ import API_URL from "../config";
 import { FontAwesome } from "@expo/vector-icons";
 import { Ionicons } from "react-native-vector-icons";
 import { MaterialCommunityIcons } from "react-native-vector-icons";
+import { COLORS } from "../styles/theme";
 
 const BabyScreen = () => {
-  const [screenKey, setScreenKey] = useState(0); // Forcing a full screen reload
+  const [screenKey, setScreenKey] = useState(0);
   const [babies, setBabies] = useState([]);
   const [selectedBaby, setSelectedBaby] = useState(null);
   const [responses, setResponses] = useState([]);
@@ -30,12 +32,10 @@ const BabyScreen = () => {
   const [babyModalVisible, setBabyModalVisible] = useState(false);
   const [newBaby, setNewBaby] = useState("");
 
-  // Load or reload babies whenever screenKey changes
   useEffect(() => {
     fetchBabies();
   }, [screenKey]);
 
-  // Only fetch responses after selectedBaby is set
   useEffect(() => {
     if (selectedBaby) {
       fetchResponses(selectedBaby);
@@ -113,7 +113,6 @@ const BabyScreen = () => {
       });
 
       if (response.data.status === "success") {
-        // The server returns {"responses": [...], "starred_responses": [...]} 
         setResponses(response.data.responses || []);
         setStarredResponses(response.data.starred_responses || []);
       }
@@ -133,7 +132,6 @@ const BabyScreen = () => {
         updates: { scanning_baby: babyName },
       });
 
-      // Force a full reload by incrementing screenKey
       setScreenKey((prev) => prev + 1);
     } catch (error) {
       console.error("Error updating scanning baby:", error);
@@ -167,12 +165,10 @@ const BabyScreen = () => {
     let updatedStarredResponses = [...starredResponses];
 
     if (updatedStarredResponses.includes(responseText)) {
-      // Unstar
       updatedStarredResponses = updatedStarredResponses.filter(
         (r) => r !== responseText
       );
     } else {
-      // Star
       if (updatedStarredResponses.length < 3) {
         updatedStarredResponses.push(responseText);
       } else {
@@ -190,8 +186,6 @@ const BabyScreen = () => {
         baby_name: selectedBaby,
         starred_responses: updatedStarredResponses,
       });
-      // Optionally re-fetch to ensure you have the latest data from Firestore
-      // fetchResponses(selectedBaby);
     } catch (error) {
       console.error("Error updating starred responses:", error);
     }
@@ -389,7 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
   },
   activeBabyTab: {
-    backgroundColor: "#8CC63F", // Green color from the example
+    backgroundColor: COLORS.primary,
   },
   babyTabText: {
     fontSize: 16,
@@ -444,7 +438,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#8CC63F",
+    backgroundColor: COLORS.primary,
     borderRadius: 5,
     padding: 15,
     marginBottom: 10,
@@ -456,7 +450,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   updateButton: {
-    backgroundColor: "#8CC63F",
+    backgroundColor: COLORS.primary,
     padding: 12,
     borderRadius: 5,
     alignItems: "center",
@@ -495,9 +489,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   babyItem: {
-    flexDirection: "row",  // ✅ Aligns text and icon in a row
-    justifyContent: "space-between", // ✅ Spaces them apart
-    alignItems: "center",  // ✅ Ensures vertical alignment
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     width: "90%",
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -507,7 +501,7 @@ const styles = StyleSheet.create({
   babyText: {
     fontSize: 16,
     color: "#333",
-    flex: 1,  // ✅ Allows text to take up available space
+    flex: 1,
   },
   closeModalText: {
     fontSize: 18,

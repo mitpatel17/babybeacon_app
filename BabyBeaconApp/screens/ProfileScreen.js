@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, Alert, ScrollView, Modal, TouchableO
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_BASE_URL from "../config";
-import { FontAwesome } from "@expo/vector-icons"; // Import for icons
+import { FontAwesome } from "@expo/vector-icons";
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHARED_STYLES } from "../styles/theme";
 
@@ -94,7 +94,7 @@ const ProfileScreen = () => {
 
       if (response.data.status === "success") {
         Alert.alert("Success", "Password changed successfully.");
-        setPasswordModalVisible(false); // Close modal on success
+        setPasswordModalVisible(false);
       } else {
         Alert.alert("Error", response.data.message);
       }
@@ -106,11 +106,8 @@ const ProfileScreen = () => {
 
   const handleLogout = async () => {
     try {
-      // Clear all stored user data
       await AsyncStorage.removeItem('username');
-      // Add any other stored items that need to be cleared
       
-      // Navigate to Login screen
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
@@ -174,7 +171,7 @@ const ProfileScreen = () => {
         <TouchableOpacity 
           style={[
             styles.button, 
-            editing ? styles.primaryButtonDark : (isSaved ? styles.primaryButtonDark : styles.primaryButton)
+            editing || isSaved ? styles.darkGreenButton : styles.greenButton
           ]} 
           onPress={handleEditProfile}
         >
@@ -183,16 +180,16 @@ const ProfileScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setPasswordModalVisible(true)}>
+        <TouchableOpacity style={[styles.button, styles.passwordButton]} onPress={() => setPasswordModalVisible(true)}>
           <Text style={styles.buttonText}>Change Password</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleLogout}>
+        <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
           <Text style={styles.buttonText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      <Modal visible={passwordModalVisible} animationType="slide" transparent>
+      <Modal id="change-password-modal" visible={passwordModalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Change Password</Text>
@@ -201,11 +198,11 @@ const ProfileScreen = () => {
             <TextInput style={styles.input} placeholder="New Password" secureTextEntry value={newPassword} onChangeText={setNewPassword} />
             <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleChangePassword}>
+            <TouchableOpacity style={styles.greenButton} onPress={handleChangePassword}>
               <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => setPasswordModalVisible(false)}>
+            <TouchableOpacity style={styles.blueButton} onPress={() => setPasswordModalVisible(false)}>
               <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -260,20 +257,25 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   
-  primaryButton: {
+  greenButton: {
     backgroundColor: COLORS.primary,
   },
   
-  primaryButtonDark: {
+  darkGreenButton: {
     backgroundColor: COLORS.primaryDark,
   },
   
-  secondaryButton: {
+  passwordButton: {
     backgroundColor: COLORS.secondary,
   },
   
-  dangerButton: {
+  logoutButton: {
     backgroundColor: COLORS.danger,
+  },
+  
+  blueButton: {
+    backgroundColor: COLORS.secondary,
+    marginTop: SPACING.m,
   },
   
   buttonText: {

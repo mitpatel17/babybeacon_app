@@ -8,7 +8,7 @@ import LoginScreen from "./screens/LoginScreen";
 import SignupDeviceScreen from "./screens/SignupDeviceScreen";
 import SignupUserScreen from "./screens/SignupUserScreen";
 import SignupBabyScreen from "./screens/SignupBabyScreen";
-import BottomTabNavigator from "./navigation/BottomTabNavigator"; // ✅ Ensure import is correct
+import BottomTabNavigator from "./navigation/BottomTabNavigator";
 
 const Stack = createStackNavigator();
 

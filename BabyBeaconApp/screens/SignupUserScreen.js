@@ -34,7 +34,7 @@ const SignupUserScreen = ({ navigation, route }) => {
         value={name} 
         onChangeText={setName} 
         autoCapitalize="words"
-        textContentType="none"  // Prevents iOS AutoFill
+        textContentType="none"
         importantForAutofill="no"
       />
 
@@ -45,7 +45,7 @@ const SignupUserScreen = ({ navigation, route }) => {
         onChangeText={setEmail} 
         keyboardType="email-address" 
         autoCapitalize="none"
-        textContentType="emailAddress"  // Prevents auto-suggestions
+        textContentType="emailAddress"
         importantForAutofill="no"
       />
 
@@ -65,7 +65,7 @@ const SignupUserScreen = ({ navigation, route }) => {
         value={username} 
         onChangeText={setUsername} 
         autoCapitalize="none"
-        textContentType="none"  // Disables autofill
+        textContentType="none"
         importantForAutofill="no"
       />
 
@@ -78,8 +78,8 @@ const SignupUserScreen = ({ navigation, route }) => {
         textContentType="none" 
         importantForAutofill="no"
         autoCompleteType="off"
-        autoCorrect={false} // Prevents auto-suggestions
-        spellCheck={false} // Ensures no spell check
+        autoCorrect={false}
+        spellCheck={false}
       />
 
       <TextInput 

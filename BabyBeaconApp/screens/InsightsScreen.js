@@ -95,7 +95,6 @@ const InsightsScreen = () => {
       if (response.data.status === "success") {
         const ridesData = response.data.rides || [];
 
-        // Filter rides based on baby's ride IDs
         const filteredRides = ridesData.filter(ride =>
           babyRideIds.includes(ride.ride_id.replace("_", ""))
         );
@@ -132,16 +131,14 @@ const InsightsScreen = () => {
     ridesData.forEach((ride) => {
         const start = new Date(ride.start_time);
         const end = new Date(ride.end_time);
-        const duration = (end - start) / (1000 * 60); // Duration in minutes
+        const duration = (end - start) / (1000 * 60);
 
-        // Update daily, weekly, monthly counts
         const diffTime = now - start;
         const diffDays = diffTime / (1000 * 60 * 60 * 24);
         if (diffDays < 1) daily++;
         if (diffDays < 7) weekly++;
         if (start.getMonth() === now.getMonth() && start.getFullYear() === now.getFullYear()) monthly++;
 
-        // Categorize ride length
         let bucketKey = "";
         if (duration < 10) bucketKey = "under10";
         else if (duration < 30) bucketKey = "between10and30";
@@ -151,7 +148,6 @@ const InsightsScreen = () => {
 
         buckets[bucketKey]++;
 
-        // Determine time period
         const hour = start.getHours();
         let timePeriod = "";
         if (hour >= 5 && hour < 12) timePeriod = "morning";
@@ -159,17 +155,15 @@ const InsightsScreen = () => {
         else if (hour >= 17 && hour < 21) timePeriod = "evening";
         else timePeriod = "night";
 
-        // Increment time period bucket count (for number of rides)
         bucketsTime[timePeriod]++;
 
-        // Update longest/shortest durations
         if (duration > maxDuration) maxDuration = duration;
         if (duration < minDuration) minDuration = duration;
         totalDuration += duration;
 
         Object.keys(ride).forEach((key) => {
             if (key.startsWith("scan")) {
-              const scan = ride[key]; // This is the scan object
+              const scan = ride[key];
               const emotion = scan.emotion;
               if (NEGATIVE_EMOTIONS.includes(emotion)) {
                 negativeCount++;
@@ -200,7 +194,7 @@ const InsightsScreen = () => {
     setWeeklyCount(weekly);
     setMonthlyCount(monthly);
     setTotalCount(ridesData.length);
-    setLongestRide(maxDuration.toFixed(1)); // in minutes
+    setLongestRide(maxDuration.toFixed(1));
     setShortestRide(minDuration === Number.MAX_SAFE_INTEGER ? 0 : minDuration.toFixed(1));
     setAverageRide(ridesData.length ? (totalDuration / ridesData.length).toFixed(1) : 0);
     setNegativeEmotionBuckets(negativeEmotionBuckets);
@@ -215,7 +209,6 @@ const InsightsScreen = () => {
             </TouchableOpacity>
         </View>
 
-        {/* Ride Count Box */}
         <View style={styles.statsBox}>
             <Text style={styles.statsTitle}>Ride Counts</Text>
             <Text style={styles.statText}>Daily Rides: {dailyCount}</Text>
@@ -224,7 +217,6 @@ const InsightsScreen = () => {
             <Text style={styles.statText}>All Time Rides: {totalCount}</Text>
         </View>
 
-        {/* Ride Length Box */}
         <View style={styles.statsBox}>
             <Text style={styles.statsTitle}>Ride Durations</Text>
             <Text style={styles.statText}>Longest Ride: {longestRide} mins</Text>
