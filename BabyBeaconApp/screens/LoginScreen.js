@@ -27,7 +27,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>BabyBeacon</Text>
-      <Text style={styles.subtitle}>Login</Text>
+      <Text style={styles.subtitle}></Text>
       <TextInput 
         style={styles.input} 
         placeholder="Username" 
