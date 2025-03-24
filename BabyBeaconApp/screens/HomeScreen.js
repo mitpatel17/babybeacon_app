@@ -340,7 +340,13 @@ const HomeScreen = ({ navigation }) => {
         </Text>
         
         {isScanning && scans.map((scan) => (
-          <View key={scan.id} style={styles.notificationItem}>
+          <View 
+            key={scan.id} 
+            style={[
+              styles.notificationItem, 
+              { backgroundColor: getEmotionColor(scan.emotion) }
+            ]}
+          >
             <Text style={styles.notificationItemText}>{scan.id}: {scan.emotion} ({scan.accuracy}%)</Text>
           </View>
         ))}
@@ -440,6 +446,8 @@ const styles = StyleSheet.create({
   },
   notificationItemText: {
     fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
   },
   popupBox: {
     position: "absolute",
