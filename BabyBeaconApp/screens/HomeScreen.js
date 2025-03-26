@@ -97,6 +97,20 @@ const HomeScreen = ({ navigation }) => {
       console.error("Device ID or username is missing.");
       return;
     }
+
+    try {
+      const statusResponse = await axios.get(`${API_URL}/get_device_status`, {
+        params: { device_id: deviceId },
+      });
+  
+      if (statusResponse.data.device_status === "off") {
+        alert("Error. The device is not turned on. Please start device.");
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking device status:", error);
+      return;
+    }
   
     const action = isScanning ? "stop_scan" : "start_scan";
     try {
