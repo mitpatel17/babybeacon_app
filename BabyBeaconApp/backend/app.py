@@ -5,10 +5,16 @@ from firebase_admin import credentials, firestore
 import logging
 logging.basicConfig(level=logging.DEBUG)
 import random
+from flask_cors import CORS  # Import Flask-CORS
 
 # Initialize Flask App
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
+# Add a ping route for testing connections
+@app.route("/ping", methods=["GET"])
+def ping():
+    return jsonify({"status": "success", "message": "API is running"}), 200
 # Firebase Service Account Path
 SERVICE_ACCOUNT_PATH = "babybeacon-2025-firebase-adminsdk-fbsvc-63d713583a.json"
 
