@@ -54,11 +54,6 @@ const HomeScreen = ({ navigation }) => {
         await updateDeviceResponse(currentDeviceId, url);
 
         setTriggeredResponse(responseKey);
-        setShowResponsePopup(true);
-      
-        setTimeout(() => {
-          setShowResponsePopup(false);
-        }, 5000);
       } else {
         console.error("Failed to fetch response URL:", response.data.message);
       }
