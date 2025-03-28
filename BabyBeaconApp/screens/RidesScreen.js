@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Dimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import API_URL from "../config";
 import { Calendar } from "react-native-calendars";
 import { useIsFocused } from "@react-navigation/native";
+import { PieChart } from "react-native-chart-kit";
 
 const RideHistoryScreen = () => {
     const isFocused = useIsFocused();
     const today = new Date().toISOString().split("T")[0];
+    const [rides, setRides] = useState([]);
     const [babyName, setBabyName] = useState("");
     const [markedDates, setMarkedDates] = useState({});
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
     const [rideDateMarkings, setRideDateMarkings] = useState({});
+    const [ridesForSelectedDate, setRidesForSelectedDate] = useState([]);
 
     useEffect(() => {
         if (isFocused) {
@@ -47,7 +50,9 @@ const RideHistoryScreen = () => {
                         const filteredRides = ridesData.filter(ride =>
                             babyRideIds.includes(ride.ride_id.replace("_", ""))
                         );
+                        setRides(filteredRides);
                         processRidesForCalendar(filteredRides);
+                        filterRidesByDate(selectedDate, filteredRides);
                     }
                 }
             }
@@ -58,7 +63,15 @@ const RideHistoryScreen = () => {
             setLoading(false);
         }
     };
-    
+
+    const filterRidesByDate = (dateString, allRides) => {
+        const sameDayRides = allRides.filter((ride) => {
+          const rideDate = new Date(ride.start_time).toISOString().split("T")[0];
+          return rideDate === dateString;
+        });
+        setRidesForSelectedDate(sameDayRides);
+    };
+      
     const applySelectedDateMarking = (baseMarkings, selected) => {
         const markings = {};
       
@@ -152,31 +165,68 @@ const RideHistoryScreen = () => {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>Rides History for {babyName}</Text>
-            {loading ? (
-                <ActivityIndicator size="large" color="#007BFF" />
+          <Text style={styles.title}>Rides History for {babyName}</Text>
+      
+          <Calendar
+            markingType={"custom"}
+            markedDates={markedDates}
+            onDayPress={(day) => {
+              const selected = day.dateString;
+              setSelectedDate(selected);
+              setMarkedDates(applySelectedDateMarking(rideDateMarkings, selected));
+              filterRidesByDate(selected, rides);
+            }}
+            style={styles.calendar}
+            theme={{ /* calendar theme styling */ }}
+          />
+      
+        {ridesForSelectedDate.length === 0 ? (
+            <Text style={styles.noRidesText}>No rides taken on {selectedDate}</Text>
             ) : (
-                <Calendar
-                    markingType={"custom"}
-                    onDayPress={(day) => {
-                        setSelectedDate(day.dateString);
-                        setMarkedDates(applySelectedDateMarking(rideDateMarkings, day.dateString));
+            ridesForSelectedDate.map((ride, index) => {
+                const start = new Date(ride.start_time);
+                const end = new Date(ride.end_time);
+                const duration = ((end - start) / (1000 * 60)).toFixed(1); // duration in minutes
+
+                let pos = 0, neu = 0, neg = 0;
+                Object.keys(ride).forEach((key) => {
+                if (key.startsWith("scan")) {
+                    const emotion = ride[key].emotion;
+                    if (["Angry", "Disgust", "Fear", "Sad"].includes(emotion)) neg++;
+                    else if (emotion === "Neutral") neu++;
+                    else pos++;
+                }
+                });
+
+                return (
+                <View key={index} style={styles.rideCard}>
+                    <Text style={styles.rideTitle}>Ride {ride.ride_id.match(/\d+/)?.[0]}</Text>
+                    <Text style={styles.rideInfo}>Start: {start.toLocaleTimeString()}</Text>
+                    <Text style={styles.rideInfo}>End: {end.toLocaleTimeString()}</Text>
+                    <Text style={styles.rideInfo}>Duration: {duration} minutes</Text>
+
+                    <PieChart
+                    data={[
+                        { name: "Positive", count: pos, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 14 },
+                        { name: "Neutral", count: neu, color: "#FFC107", legendFontColor: "#000", legendFontSize: 14 },
+                        { name: "Negative", count: neg, color: "#F44336", legendFontColor: "#000", legendFontSize: 14 },
+                    ]}
+                    width={Dimensions.get("window").width - 40}
+                    height={180}
+                    chartConfig={{
+                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                     }}
-                    markedDates={markedDates}
-                    style={styles.calendar}
-                    theme={{
-                        calendarBackground: "#fff",
-                        textSectionTitleColor: "#000",
-                        textDayFontSize: 18,
-                        textMonthFontSize: 20,
-                        textDayHeaderFontWeight: "bold",
-                        dayTextColor: "#000",
-                        textDayStyle: { marginVertical: 4 },
-                    }}                      
-                />
+                    accessor={"count"}
+                    backgroundColor={"transparent"}
+                    paddingLeft={"15"}
+                    absolute
+                    />
+                </View>
+                );
+            })
             )}
         </ScrollView>
-    );
+      );      
 };
 
 const styles = StyleSheet.create({
@@ -197,6 +247,30 @@ const styles = StyleSheet.create({
         elevation: 2,
         paddingBottom: 10,
     },
+    rideCard: {
+        width: "100%",
+        padding: 16,
+        marginVertical: 10,
+        backgroundColor: "#f0f0f0",
+        borderRadius: 10,
+        elevation: 2,
+      },
+      rideTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 6,
+      },
+      rideInfo: {
+        fontSize: 14,
+        marginBottom: 4,
+      },     
+      noRidesText: {
+        marginTop: 20,
+        fontSize: 16,
+        color: "#666",
+        fontStyle: "italic",
+        textAlign: "center",
+      }, 
 });
 
 export default RideHistoryScreen;
