@@ -7,6 +7,7 @@ import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import BabyScreen from "../screens/BabyScreen";
 import InsightsScreen from "../screens/InsightsScreen";
+import RidesScreen from "../screens/RidesScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,6 +24,8 @@ const BottomTabNavigator = () => {
             return <MaterialCommunityIcons name="baby-face-outline" size={size} color={color} />;
           } else if (route.name === "Insights") {
             return <MaterialCommunityIcons name="chart-box" size={size} color={color} />;
+          } else if (route.name === "Rides") {
+            return <MaterialCommunityIcons name="car" size={size} color={color} />;
           }
         },
         tabBarActiveTintColor: "#007BFF",
@@ -30,6 +33,7 @@ const BottomTabNavigator = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Rides" component={RidesScreen} />
       <Tab.Screen name="Insights" component={InsightsScreen} />
       <Tab.Screen name="Baby" component={BabyScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
