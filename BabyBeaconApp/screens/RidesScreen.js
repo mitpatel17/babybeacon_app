@@ -20,49 +20,49 @@ const RideHistoryScreen = () => {
 
     useEffect(() => {
         if (isFocused) {
-            const today = new Date().toISOString().split("T")[0];
-            setSelectedDate(today);
-            fetchRideHistory();
+          const todayDate = new Date().toISOString().split("T")[0];
+          setSelectedDate(todayDate);
+          fetchRideHistory(todayDate);
         }
-    }, [isFocused]);
+      }, [isFocused]);
 
-    const fetchRideHistory = async () => {
+    const fetchRideHistory = async (initialSelectedDate = today) => {
         try {
-            const username = await AsyncStorage.getItem("username");
-            const profileRes = await axios.get(`${API_URL}/get_profile`, { params: { username } });
-
-            if (profileRes.data.status === "success") {
-                const { device_id, scanning_baby } = profileRes.data.data;
-                setBabyName(scanning_baby);
-
-                const babyDocRes = await axios.get(`${API_URL}/get_baby`, {
-                    params: { username, baby_name: scanning_baby },
-                });
-
-                if (babyDocRes.data.status === "success") {
-                    const babyRideIds = babyDocRes.data.data.rides || [];
-                    const response = await axios.get(`${API_URL}/get_ride_insights`, {
-                        params: { device_id },
-                    });
-
-                    if (response.data.status === "success") {
-                        const ridesData = response.data.rides || [];
-                        const filteredRides = ridesData.filter(ride =>
-                            babyRideIds.includes(ride.ride_id.replace("_", ""))
-                        );
-                        setRides(filteredRides);
-                        processRidesForCalendar(filteredRides);
-                        filterRidesByDate(selectedDate, filteredRides);
-                    }
-                }
+          const username = await AsyncStorage.getItem("username");
+          const profileRes = await axios.get(`${API_URL}/get_profile`, { params: { username } });
+      
+          if (profileRes.data.status === "success") {
+            const { device_id, scanning_baby } = profileRes.data.data;
+            setBabyName(scanning_baby);
+      
+            const babyDocRes = await axios.get(`${API_URL}/get_baby`, {
+              params: { username, baby_name: scanning_baby },
+            });
+      
+            if (babyDocRes.data.status === "success") {
+              const babyRideIds = babyDocRes.data.data.rides || [];
+              const response = await axios.get(`${API_URL}/get_ride_insights`, {
+                params: { device_id },
+              });
+      
+              if (response.data.status === "success") {
+                const ridesData = response.data.rides || [];
+                const filteredRides = ridesData.filter(ride =>
+                  babyRideIds.includes(ride.ride_id.replace("_", ""))
+                );
+                setRides(filteredRides);
+                processRidesForCalendar(filteredRides, initialSelectedDate); // ✅ pass selected
+                filterRidesByDate(initialSelectedDate, filteredRides);
+              }
             }
-
-            setLoading(false);
+          }
+      
+          setLoading(false);
         } catch (error) {
-            console.error("Error fetching ride history:", error);
-            setLoading(false);
+          console.error("Error fetching ride history:", error);
+          setLoading(false);
         }
-    };
+      };      
 
     const filterRidesByDate = (dateString, allRides) => {
         const sameDayRides = allRides.filter((ride) => {
@@ -113,55 +113,36 @@ const RideHistoryScreen = () => {
         return markings;
     };      
 
-    const processRidesForCalendar = (rides) => {
+    const processRidesForCalendar = (rides, selectedDateOverride = selectedDate) => {
         const dateCounts = {};
-
         rides.forEach((ride) => {
-            const date = new Date(ride.start_time).toISOString().split("T")[0];
-            if (dateCounts[date]) {
-                dateCounts[date]++;
-            } else {
-                dateCounts[date] = 1;
-            }
-        });          
-
+          const date = new Date(ride.start_time).toISOString().split("T")[0];
+          dateCounts[date] = (dateCounts[date] || 0) + 1;
+        });
+      
         const markings = {};
         Object.entries(dateCounts).forEach(([date, count]) => {
-            let color = "transparent";
-            if (count === 1) color = "#a8e6a3"; // light green
-            else if (count === 2) color = "#66bb6a"; // medium green
-            else if (count >= 3) color = "#2e7d32"; // dark green
-
-            markings[date] = {
-                customStyles: {
-                    container: {
-                        backgroundColor: color,
-                        borderRadius: 6,
-                    },
-                    text: {
-                        color: count === 0 ? "black" : "white",
-                    },
-                },
-            };
-            markings[selectedDate] = {
-                ...(markings[selectedDate] || {}),
-                customStyles: {
-                  ...(markings[selectedDate]?.customStyles || {}),
-                  container: {
-                    backgroundColor: "#FFA500", // Orange
-                    borderRadius: 6,
-                  },
-                  text: {
-                    color: "white",
-                    fontWeight: "bold",
-                  },
-                },
-              };
+          let color = "transparent";
+          if (count === 1) color = "#a8e6a3";
+          else if (count === 2) color = "#66bb6a";
+          else if (count >= 3) color = "#2e7d32";
+      
+          markings[date] = {
+            customStyles: {
+              container: {
+                backgroundColor: color,
+                borderRadius: 6,
+              },
+              text: {
+                color: count === 0 ? "black" : "white",
+              },
+            },
+          };
         });
-
+      
         setRideDateMarkings(markings);
-        setMarkedDates(applySelectedDateMarking(markings, selectedDate));   
-    };
+        setMarkedDates(applySelectedDateMarking(markings, selectedDateOverride));
+    };      
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
