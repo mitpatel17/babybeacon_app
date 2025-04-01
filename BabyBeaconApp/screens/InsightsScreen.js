@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, Modal, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, Modal, TouchableOpacity, ScrollView } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API_URL from "../config";
@@ -411,16 +411,24 @@ const InsightsScreen = () => {
       <ActivityIndicator size="large" color="#4CAF50" />
     </View>
   ) : (
-    <FlatList
-      contentContainerStyle={styles.container}
-      ListHeaderComponent={renderHeader}
-    />
+    <View style={styles.mainContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={true}
+      >
+        {renderHeader()}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContainer: {
+    padding: 15,
     paddingBottom: 40,
   },
   loaderContainer: {
@@ -430,7 +438,6 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: "center",
-    marginBottom: 20,
   },
   titleContainer: {
     flexDirection: "row",
@@ -443,29 +450,43 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   statsBox: {
-    width: "90%",
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#4CAF50",
+    width: Dimensions.get("window").width - 20,
+    padding: 12,
+    marginVertical: 8,
+    backgroundColor: '#fff',
     borderRadius: 10,
-    backgroundColor: "#f9f9f9",
-    alignItems: "center",
-    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   statsTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 8,
+    color: "#333",
   },
   statText: {
-    fontSize: 18,
-    marginBottom: 10,
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 4,
   },
   chartBox: {
-    width: "100%",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 20,
+    width: Dimensions.get("window").width - 20,
+    padding: 12,
+    marginVertical: 8,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   headerTitleContainer: {
     flexDirection: "row",

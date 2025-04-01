@@ -18,7 +18,7 @@ const HomeScreen = ({ navigation }) => {
   const [scans, setScans] = useState([]);
   const [showResponsePopup, setShowResponsePopup] = useState(false);
   const [triggeredResponse, setTriggeredResponse] = useState("");
-  const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
+    const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
 
   const getEmotionColor = (emotion) => {
     if (NEGATIVE_EMOTIONS.includes(emotion)) return "#FF4C4C";
@@ -52,13 +52,8 @@ const HomeScreen = ({ navigation }) => {
         const url = response.data.url;
         setActiveResponseUrl(url);
         await updateDeviceResponse(currentDeviceId, url);
-
+        
         setTriggeredResponse(responseKey);
-        setShowResponsePopup(true);
-      
-        setTimeout(() => {
-          setShowResponsePopup(false);
-        }, 5000);
       } else {
         console.error("Failed to fetch response URL:", response.data.message);
       }
@@ -281,7 +276,7 @@ const HomeScreen = ({ navigation }) => {
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Beacon on {scanningBaby || 'Baby'}</Text>
         <View style={styles.statusContainer}>
@@ -339,17 +334,19 @@ const HomeScreen = ({ navigation }) => {
           Start scanning to receive baby state notifications
         </Text>
         
-        {isScanning && scans.map((scan) => (
-          <View 
-            key={scan.id} 
-            style={[
-              styles.notificationItem, 
-              { backgroundColor: getEmotionColor(scan.emotion) }
-            ]}
-          >
-            <Text style={styles.notificationItemText}>{scan.id}: {scan.emotion} ({scan.accuracy}%)</Text>
-          </View>
-        ))}
+        <ScrollView style={styles.notificationsScrollView}>
+          {isScanning && scans.map((scan) => (
+            <View 
+              key={scan.id} 
+              style={[
+                styles.notificationItem, 
+                { backgroundColor: getEmotionColor(scan.emotion) }
+              ]}
+            >
+              <Text style={styles.notificationItemText}>{scan.id}: {scan.emotion} ({scan.accuracy}%)</Text>
+            </View>
+          ))}
+        </ScrollView>
       </View>
 
       {showResponsePopup && (
@@ -362,7 +359,7 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.popupMessage}>Auto-playing: {triggeredResponse}</Text>
         </TouchableOpacity>
       )}
-    </ScrollView>
+    </View>
   );
 };
 
@@ -373,7 +370,6 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   section: {
-    marginBottom: 25,
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
@@ -437,6 +433,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 10,
+  },
+  notificationsScrollView: {
+    maxHeight: 200,
   },
   notificationItem: {
     padding: 12,
