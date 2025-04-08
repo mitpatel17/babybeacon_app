@@ -267,6 +267,31 @@ def get_baby_responses():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/get_device_response", methods=["GET"])
+def get_device_response():
+    device_id = request.args.get("device_id")
+    
+    if not device_id:
+        return jsonify({"status": "error", "message": "Missing device_id"}), 400
+        
+    try:
+        device_ref = db.collection("devices").document(device_id)
+        device_doc = device_ref.get()
+        
+        if not device_doc.exists:
+            return jsonify({"status": "error", "message": "Device not found"}), 404
+            
+        device_data = device_doc.to_dict()
+        response = device_data.get("response", "")
+        
+        return jsonify({
+            "status": "success",
+            "response": response
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route('/get_response_url', methods=['GET'])
 def get_response_url():
     username = request.args.get('username')

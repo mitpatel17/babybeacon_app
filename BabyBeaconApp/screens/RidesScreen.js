@@ -5,7 +5,8 @@ import axios from "axios";
 import API_URL from "../config";
 import { Calendar } from "react-native-calendars";
 import { useIsFocused } from "@react-navigation/native";
-import { PieChart } from "react-native-chart-kit";
+import Swiper from 'react-native-swiper';
+import { BarChart, PieChart } from 'react-native-chart-kit';
 
 const RideHistoryScreen = () => {
     const isFocused = useIsFocused();
@@ -203,22 +204,100 @@ const RideHistoryScreen = () => {
                                             {end.toLocaleTimeString()}
                                         </Text>
                                     </View>
-                                    <PieChart
-                                        data={[
-                                            { name: "Positive", count: pos, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 12 },
-                                            { name: "Neutral", count: neu, color: "#FFC107", legendFontColor: "#000", legendFontSize: 12 },
-                                            { name: "Negative", count: neg, color: "#F44336", legendFontColor: "#000", legendFontSize: 12 },
-                                        ]}
-                                        width={Dimensions.get("window").width - 40}
-                                        height={160}
-                                        chartConfig={{
-                                            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                                        }}
-                                        accessor={"count"}
-                                        backgroundColor={"transparent"}
-                                        paddingLeft={"15"}
-                                        absolute
-                                    />
+                                    <Swiper
+                                        showsPagination={true}
+                                        loop={false}
+                                        height={250}
+                                        style={{ marginTop: 20 }}
+                                        dotStyle={{ marginHorizontal: 6 }}
+                                    >
+                                        {/* Slide 1: Pie Chart */}
+                                        <View style={{ alignItems: "center", paddingVertical: 10 }}>
+                                            <Text style={{ fontWeight: "bold", marginBottom: 8 }}>Mood Distribution</Text>
+                                            <PieChart
+                                                data={[
+                                                    { name: "Positive", count: pos, color: "#4CAF50", legendFontColor: "#000", legendFontSize: 12 },
+                                                    { name: "Neutral", count: neu, color: "#FFC107", legendFontColor: "#000", legendFontSize: 12 },
+                                                    { name: "Negative", count: neg, color: "#F44336", legendFontColor: "#000", legendFontSize: 12 },
+                                                ]}
+                                                width={Dimensions.get("window").width - 40}
+                                                height={160}
+                                                chartConfig={{
+                                                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                                }}
+                                                accessor={"count"}
+                                                backgroundColor={"transparent"}
+                                                paddingLeft={"15"}
+                                                absolute
+                                            />
+                                        </View>
+
+                                        {/* Slide 2: Negative Emotions Bar Chart */}
+                                        <View style={{ alignItems: "center", paddingVertical: 10 }}>
+                                            <Text style={{ fontWeight: "bold", marginBottom: 8 }}>Negative Emotions</Text>
+                                            <BarChart
+                                                data={{
+                                                    labels: ["Angry", "Disgust", "Fear", "Sad"],
+                                                    datasets: [
+                                                        {
+                                                            data: [
+                                                                Object.values(ride).filter(s => s?.emotion === "Angry").length,
+                                                                Object.values(ride).filter(s => s?.emotion === "Disgust").length,
+                                                                Object.values(ride).filter(s => s?.emotion === "Fear").length,
+                                                                Object.values(ride).filter(s => s?.emotion === "Sad").length,
+                                                            ]
+                                                        }
+                                                    ]
+                                                }}
+                                                width={Dimensions.get("window").width - 40}
+                                                height={180}
+                                                fromZero
+                                                chartConfig={{
+                                                    backgroundColor: "#fff",
+                                                    backgroundGradientFrom: "#fff",
+                                                    backgroundGradientTo: "#fff",
+                                                    decimalPlaces: 0,
+                                                    barPercentage: 0.6,
+                                                    color: (opacity = 1) => `rgba(244, 67, 54, ${opacity})`,
+                                                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                                }}
+                                                style={{ borderRadius: 10 }}
+                                            />
+                                        </View>
+
+                                        {/* Slide 3: Positive Emotions Bar Chart */}
+                                        <View style={{ alignItems: "center", paddingVertical: 10 }}>
+                                            <Text style={{ fontWeight: "bold", marginBottom: 8 }}>Positive Emotions</Text>
+                                            <BarChart
+                                                data={{
+                                                    labels: ["Happy", "Surprise", "Calm", "Excited"],
+                                                    datasets: [
+                                                        {
+                                                            data: [
+                                                                Object.values(ride).filter(s => s?.emotion === "Happy").length,
+                                                                Object.values(ride).filter(s => s?.emotion === "Surprise").length,
+                                                                Object.values(ride).filter(s => s?.emotion === "Calm").length,
+                                                                Object.values(ride).filter(s => s?.emotion === "Excited").length,
+                                                            ]
+                                                        }
+                                                    ]
+                                                }}
+                                                width={Dimensions.get("window").width - 40}
+                                                height={180}
+                                                fromZero
+                                                chartConfig={{
+                                                    backgroundColor: "#fff",
+                                                    backgroundGradientFrom: "#fff",
+                                                    backgroundGradientTo: "#fff",
+                                                    decimalPlaces: 0,
+                                                    barPercentage: 0.6,
+                                                    color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
+                                                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                                }}
+                                                style={{ borderRadius: 10 }}
+                                            />
+                                        </View>
+                                    </Swiper>
                                 </View>
                             );
                         })

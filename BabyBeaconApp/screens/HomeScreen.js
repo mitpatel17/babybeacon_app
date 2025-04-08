@@ -18,7 +18,9 @@ const HomeScreen = ({ navigation }) => {
   const [scans, setScans] = useState([]);
   const [showResponsePopup, setShowResponsePopup] = useState(false);
   const [triggeredResponse, setTriggeredResponse] = useState("");
-    const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
+  const [manualSelectionMade, setManualSelectionMade] = useState(false);
+  const [responseSet, setResponseSet] = useState(false);
+  const NEGATIVE_EMOTIONS = ["Angry", "Disgust", "Fear", "Sad"];
 
   const getEmotionColor = (emotion) => {
     if (NEGATIVE_EMOTIONS.includes(emotion)) return "#FF4C4C";
@@ -28,6 +30,8 @@ const HomeScreen = ({ navigation }) => {
 
   const handleResponseClick = async (responseKey) => {
     setActiveResponse(responseKey);
+    setManualSelectionMade(true);
+    setResponseSet(true);
   
     const currentDeviceId = deviceId;
     const currentScanningBaby = scanningBaby;
@@ -52,8 +56,6 @@ const HomeScreen = ({ navigation }) => {
         const url = response.data.url;
         setActiveResponseUrl(url);
         await updateDeviceResponse(currentDeviceId, url);
-        
-        setTriggeredResponse(responseKey);
       } else {
         console.error("Failed to fetch response URL:", response.data.message);
       }
@@ -103,8 +105,17 @@ const HomeScreen = ({ navigation }) => {
         setIsScanning(!isScanning);
   
         if (!isScanning) {
-          setScans([]);  
+          // Starting a scan - clear previous scan data and reset states
+          setScans([]);
+          setManualSelectionMade(false);
+          setResponseSet(false);
           startRidePolling(storedUsername);
+        } else {
+          // Stopping a scan - reset response to None but keep scans visible
+          setActiveResponse("None");
+          setActiveResponseUrl("");
+          updateDeviceResponse(deviceId, "");
+          stopRidePolling();
         }
       } else {
         console.error("Error toggling scan:", response.data.message);
@@ -136,6 +147,8 @@ const HomeScreen = ({ navigation }) => {
   let pollingInterval; 
 
   const pollForScans = async (rideId) => {
+    let hasTriggeredResponse = false; // Local variable to track if we've triggered a response
+    
     pollingInterval = setInterval(async () => {
       try {
         const statusResponse = await axios.get(`${API_URL}/get_device_status`, {
@@ -179,11 +192,17 @@ const HomeScreen = ({ navigation }) => {
             if (newScans.length > 0) {
               newScans.forEach(async (scan) => {
                 if (NEGATIVE_EMOTIONS.includes(scan.emotion)) {
-                  let selectedResponse = activeResponse;
+                  // If we've already triggered a response or a manual selection was made, don't trigger another
+                  if (hasTriggeredResponse || manualSelectionMade) {
+                    return;
+                  }
                   
+                  // Only set automated response if no response is set yet and no manual selection made
                   if (activeResponse === "None" && allResponses.length > 0) {
+                    hasTriggeredResponse = true; // Mark that we've triggered a response
+                    
                     const randomIndex = Math.floor(Math.random() * allResponses.length);
-                    selectedResponse = allResponses[randomIndex];
+                    const selectedResponse = allResponses[randomIndex];
               
                     const storedUsername = await AsyncStorage.getItem("username");
                     const response = await axios.get(`${API_URL}/get_response_url`, {
@@ -198,18 +217,20 @@ const HomeScreen = ({ navigation }) => {
                       const url = response.data.url;
                       setActiveResponse(selectedResponse);
                       setActiveResponseUrl(url);
+                      setResponseSet(true);
               
                       await updateDeviceResponse(deviceId, url);
+                      
+                      // Show popup only for the first automated response
+                      setTriggeredResponse(selectedResponse);
+                      setShowResponsePopup(true);
+                      setTimeout(() => {
+                        setShowResponsePopup(false);
+                      }, 5000);
                     } else {
                       console.error("Failed to fetch response URL for random:", response.data.message);
                     }
                   }
-              
-                  setTriggeredResponse(selectedResponse);
-                  setShowResponsePopup(true);
-                  setTimeout(() => {
-                    setShowResponsePopup(false);
-                  }, 5000);
                 }
               });                           
             }
@@ -331,11 +352,11 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Baby Notifications</Text>
         <Text style={styles.notificationText}>
-          Start scanning to receive baby state notifications
+          {isScanning ? "Receiving baby state notifications..." : "Baby state notifications"}
         </Text>
         
         <ScrollView style={styles.notificationsScrollView}>
-          {isScanning && scans.map((scan) => (
+          {scans.map((scan) => (
             <View 
               key={scan.id} 
               style={[
