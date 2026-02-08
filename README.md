@@ -8,6 +8,10 @@ While the device is actively scanning, the app will be polling the Firebase stor
 
 If there are any negative emotions of state detected, the app will prompt the driver to play a reponse which will be in the form of a youtube video that is played on the device screen. The purpose of this is to calm the baby down while in distress, and hopefully give enough time for the parent to pull the car over to attend to the needs of the baby.
 
+# Database Schema Design for API endpoints
+
+<img width="1277" height="491" alt="image" src="https://github.com/user-attachments/assets/340080ed-2ad2-40ae-8f6a-340f6845b705" />
+
 # App Screens
 
 <img width="1695" height="950" alt="login" src="https://github.com/user-attachments/assets/b332bd5e-bbb3-4bcb-96ab-2f1dc37c2366" />
